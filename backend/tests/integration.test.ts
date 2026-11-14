@@ -352,12 +352,19 @@ describe('TeamForge End-to-End & Integration Test Suite', () => {
   });
 
   // -------------------------------------------------------------
-  // 21. AUDIT LOGGING
+  // 21. AUDIT LOGGING & AUDIT SURVIVAL ON DELETION
   // -------------------------------------------------------------
-  it('21. records all critical operations in audit log', async () => {
+  it('21. records all critical operations in audit log and preserves audit history after team deletion', async () => {
+    // Verify database state: team is deleted
+    const deletedTeam = await prisma.team.findUnique({
+      where: { id: teamId },
+    });
+    expect(deletedTeam).toBeNull();
+
+    // Verify audit logs survive team deletion with teamId set to null
     const logs = await prisma.auditLog.findMany({
-      where: { teamId },
-      orderBy: { createdAt: 'desc' },
+      where: { hackathonId },
+      orderBy: { createdAt: 'asc' },
     });
 
     expect(logs.length).toBeGreaterThanOrEqual(4);
@@ -366,6 +373,20 @@ describe('TeamForge End-to-End & Integration Test Suite', () => {
     expect(actions).toContain('MEMBER_JOINED');
     expect(actions).toContain('LEADER_TRANSFERRED');
     expect(actions).toContain('TEAM_DELETED');
+
+    // Verify specific TEAM_DELETED log
+    const deletionLog = await prisma.auditLog.findFirst({
+      where: {
+        action: 'TEAM_DELETED',
+        metadata: {
+          path: ['deletedTeamId'],
+          equals: teamId,
+        },
+      },
+    });
+
+    expect(deletionLog).not.toBeNull();
+    expect(deletionLog?.teamId).toBeNull();
   });
 
   // -------------------------------------------------------------

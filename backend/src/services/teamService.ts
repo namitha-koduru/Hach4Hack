@@ -918,20 +918,26 @@ export class TeamService {
 
         // Case A: Last member leaving -> Delete Team
         if (allMembers.length <= 1) {
+          // 1. Record deletion audit log before deleting the team
+          await AuditService.record(tx, {
+            actorId: userId,
+            hackathonId: team.hackathonId,
+            teamId: team.id,
+            action: AuditAction.TEAM_DELETED,
+            metadata: {
+              deletedTeamId: team.id,
+              teamName: team.name,
+              reason: 'LAST_MEMBER_LEFT',
+            },
+            ipAddress: clientIp,
+          });
+
+          // 2. Delete the team (Database sets AuditLog.teamId to NULL via onDelete: SetNull)
           await tx.team.delete({
             where: { id: teamId },
           });
 
-          await AuditService.record(tx, {
-            actorId: userId,
-            hackathonId: team.hackathonId,
-            teamId,
-            action: AuditAction.TEAM_DELETED,
-            metadata: { reason: 'LAST_MEMBER_LEFT' },
-            ipAddress: clientIp,
-          });
-
-          return { action: 'TEAM_DELETED', hackathonId: team.hackathonId, teamId };
+          return { action: 'TEAM_DELETED', hackathonId: team.hackathonId, teamId, teamName: team.name };
         }
 
         // Case B: Leader leaving with remaining members -> Deterministic Succession
@@ -1110,17 +1116,25 @@ export class TeamService {
       throw new ForbiddenError('Only the team leader or an administrator can delete this team');
     }
 
-    await prisma.team.delete({
-      where: { id: teamId },
-    });
+    await prisma.$transaction(async (tx) => {
+      // 1. Record deletion audit log before deleting the team
+      await AuditService.record(tx, {
+        actorId: userId,
+        hackathonId: team.hackathonId,
+        teamId: team.id,
+        action: AuditAction.TEAM_DELETED,
+        metadata: {
+          deletedTeamId: team.id,
+          teamName: team.name,
+          deletedByRole: isAdmin ? 'ADMIN' : 'LEADER',
+        },
+        ipAddress: clientIp,
+      });
 
-    await AuditService.record(prisma, {
-      actorId: userId,
-      hackathonId: team.hackathonId,
-      teamId,
-      action: AuditAction.TEAM_DELETED,
-      metadata: { deletedByRole: isAdmin ? 'ADMIN' : 'LEADER' },
-      ipAddress: clientIp,
+      // 2. Delete the team (Database sets AuditLog.teamId to NULL via onDelete: SetNull)
+      await tx.team.delete({
+        where: { id: teamId },
+      });
     });
 
     socketEvents.emitTeamDeleted(team.hackathonId, teamId);
