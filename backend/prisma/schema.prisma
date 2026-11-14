@@ -1,0 +1,207 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum UserRole {
+  PARTICIPANT
+  ADMIN
+}
+
+enum TeamMemberRole {
+  LEADER
+  MEMBER
+}
+
+enum JoinRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELLED
+}
+
+enum AuditAction {
+  TEAM_CREATED
+  JOIN_REQUEST_CREATED
+  JOIN_REQUEST_ACCEPTED
+  JOIN_REQUEST_DECLINED
+  JOIN_REQUEST_CANCELLED
+  MEMBER_JOINED
+  MEMBER_REMOVED
+  MEMBER_LEFT
+  LEADER_TRANSFERRED
+  TEAM_DELETED
+  INVITE_CREATED
+  INVITE_REVOKED
+}
+
+model User {
+  id             String       @id @default(uuid())
+  email          String       @unique
+  passwordHash   String
+  name           String
+  bio            String?      @default("")
+  skills         String[]     @default([])
+  preferredRoles String[]     @default([])
+  timezone       String       @default("UTC")
+  role           UserRole     @default(PARTICIPANT)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  memberships       TeamMember[]
+  joinRequests      JoinRequest[]
+  createdInvites    InvitationCode[]
+  auditLogs         AuditLog[]       @relation("ActorAuditLogs")
+  targetedAuditLogs AuditLog[]       @relation("TargetUserAuditLogs")
+
+  @@index([email])
+  @@index([role])
+}
+
+model Hackathon {
+  id          String       @id @default(uuid())
+  title       String
+  slug        String       @unique
+  description String       @default("")
+  minTeamSize Int          @default(2)
+  maxTeamSize Int          @default(5)
+  startDate   DateTime
+  endDate     DateTime
+  isActive    Boolean      @default(true)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  teams       Team[]
+  members     TeamMember[]
+  auditLogs   AuditLog[]
+
+  @@index([isActive])
+  @@index([slug])
+}
+
+model Team {
+  id                 String       @id @default(uuid())
+  hackathonId        String
+  name               String
+  description        String       @default("")
+  minMembers         Int          @default(2)
+  maxMembers         Int          @default(5)
+  currentMemberCount Int          @default(1)
+  requiredSkills     String[]     @default([])
+  isLocked           Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  hackathon   Hackathon        @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  members     TeamMember[]
+  joinRequests JoinRequest[]
+  invitations InvitationCode[]
+  auditLogs   AuditLog[]
+
+  @@unique([hackathonId, name])
+  @@index([hackathonId, currentMemberCount])
+  @@index([hackathonId, createdAt])
+  @@index([isLocked])
+}
+
+model TeamMember {
+  id          String         @id @default(uuid())
+  teamId      String
+  userId      String
+  hackathonId String
+  role        TeamMemberRole @default(MEMBER)
+  joinedAt    DateTime       @default(now())
+
+  team      Team      @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  hackathon Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+
+  // Critical Database-Level Invariants:
+  // 1. A user cannot join the same team twice.
+  // 2. A user can belong to ONLY ONE team per hackathon across the entire database!
+  @@unique([teamId, userId])
+  @@unique([userId, hackathonId])
+  @@index([teamId, joinedAt])
+  @@index([userId])
+  @@index([hackathonId])
+}
+
+model JoinRequest {
+  id          String            @id @default(uuid())
+  teamId      String
+  userId      String
+  hackathonId String
+  status      JoinRequestStatus @default(PENDING)
+  message     String?           @default("")
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  team Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([teamId, status])
+  @@index([userId, status])
+  @@index([hackathonId])
+}
+
+model InvitationCode {
+  id          String    @id @default(uuid())
+  teamId      String
+  codeHash    String    @unique
+  codePrefix  String
+  createdById String
+  expiresAt   DateTime
+  maxUses     Int       @default(1)
+  usesCount   Int       @default(0)
+  isRevoked   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+
+  team      Team @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  createdBy User @relation(fields: [createdById], references: [id], onDelete: Cascade)
+
+  @@index([teamId, isRevoked])
+  @@index([expiresAt])
+}
+
+model AuditLog {
+  id            String      @id @default(uuid())
+  actorId       String?
+  hackathonId   String?
+  teamId        String?
+  targetUserId  String?
+  action        AuditAction
+  metadata      Json?
+  ipAddress     String?
+  correlationId String?
+  createdAt     DateTime    @default(now())
+
+  actor      User?      @relation("ActorAuditLogs", fields: [actorId], references: [id], onDelete: SetNull)
+  targetUser User?      @relation("TargetUserAuditLogs", fields: [targetUserId], references: [id], onDelete: SetNull)
+  hackathon  Hackathon? @relation(fields: [hackathonId], references: [id], onDelete: SetNull)
+  team       Team?      @relation(fields: [teamId], references: [id], onDelete: SetNull)
+
+  @@index([teamId, createdAt])
+  @@index([hackathonId, createdAt])
+  @@index([actorId, createdAt])
+  @@index([action])
+}
+
+model IdempotencyRecord {
+  id           String   @id @default(uuid())
+  key          String   @unique
+  userId       String
+  endpoint     String
+  requestHash  String
+  statusCode   Int
+  responseBody Json
+  createdAt    DateTime @default(now())
+  expiresAt    DateTime
+
+  @@index([key])
+  @@index([expiresAt])
+}
+

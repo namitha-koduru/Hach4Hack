@@ -1,0 +1,33 @@
+{
+  "name": "teamforge-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "TeamForge - Production-Ready Race-Proof Team Formation Platform",
+  "workspaces": [
+    "backend",
+    "frontend",
+    "shared"
+  ],
+  "scripts": {
+    "dev:backend": "npm --workspace=backend run dev",
+    "dev:frontend": "npm --workspace=frontend run dev",
+    "dev": "npm run dev:backend",
+    "build": "npm run build --workspaces",
+    "test": "npm --workspace=backend test",
+    "test:concurrency": "npm --workspace=backend run test:concurrency",
+    "seed": "npm --workspace=backend run seed"
+  },
+  "keywords": [
+    "hackathon",
+    "concurrency",
+    "race-condition",
+    "postgresql",
+    "prisma",
+    "socket.io",
+    "react",
+    "typescript"
+  ],
+  "author": "TeamForge Core Engineering",
+  "license": "MIT"
+}
+
