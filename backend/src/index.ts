@@ -11,9 +11,9 @@ const server = http.createServer(app);
 initSocket(server);
 
 // Start server
-server.listen(config.port, () => {
+server.listen(config.port, '0.0.0.0', () => {
   console.log(`=========================================`);
-  console.log(`🚀 TeamForge Server running on port ${config.port}`);
+  console.log(`🚀 TeamForge Server running on http://0.0.0.0:${config.port}`);
   console.log(`📡 Environment: ${config.env}`);
   console.log(`🔗 API Base: http://localhost:${config.port}/api`);
   console.log(`⚡ Health Check: http://localhost:${config.port}/api/health`);

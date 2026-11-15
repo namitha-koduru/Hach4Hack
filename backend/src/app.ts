@@ -1,4 +1,6 @@
 import express from 'express';
+import path from 'path';
+import fs from 'fs';
 import helmet from 'helmet';
 import cors from 'cors';
 import morgan from 'morgan';
@@ -11,10 +13,12 @@ import { NotFoundError } from './utils/errors';
 export const createApp = () => {
   const app = express();
 
-  // 1. Security Headers
+  // 1. Security Headers (iframe & external fonts compatible)
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'cross-origin' },
+      contentSecurityPolicy: false,
+      xFrameOptions: false,
     })
   );
 
@@ -68,12 +72,32 @@ export const createApp = () => {
   // 6. Mount API Routes
   app.use('/api', apiRouter);
 
-  // 7. Catch-all for undefined routes
-  app.use((_req, _res, next) => {
+  // 7. Catch-all for undefined API routes
+  app.use('/api', (_req, _res, next) => {
     next(new NotFoundError('API Route'));
   });
 
-  // 8. Global Error Handler
+  // 8. Serve Frontend SPA Static Build
+  const frontendDistCandidates = [
+    path.resolve(__dirname, '../../frontend/dist'),
+    path.resolve(__dirname, '../../../frontend/dist'),
+    path.resolve(process.cwd(), 'frontend/dist'),
+    path.resolve(process.cwd(), '../frontend/dist'),
+  ];
+  const frontendDist = frontendDistCandidates.find((p) => fs.existsSync(path.join(p, 'index.html')));
+
+  if (frontendDist) {
+    app.use(express.static(frontendDist));
+    app.get('*', (_req, res) => {
+      res.sendFile(path.join(frontendDist, 'index.html'));
+    });
+  } else {
+    app.use((_req, _res, next) => {
+      next(new NotFoundError('API Route'));
+    });
+  }
+
+  // 9. Global Error Handler
   app.use(errorHandler);
 
   return app;
