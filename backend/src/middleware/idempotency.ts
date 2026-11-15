@@ -34,12 +34,31 @@ export const handleIdempotency = async (req: Request, res: Response, next: NextF
     }
   }
 
+  let releaseFlight!: () => void;
+  const flightPromise = new Promise<void>((resolve) => {
+    releaseFlight = resolve;
+  });
+  inFlightKeys.set(scopedKey, flightPromise);
+
+  let released = false;
+  const cleanupFlight = () => {
+    if (!released) {
+      released = true;
+      inFlightKeys.delete(scopedKey);
+      releaseFlight();
+    }
+  };
+
+  res.once('finish', cleanupFlight);
+  res.once('close', cleanupFlight);
+
   try {
     const existing = await prisma.idempotencyRecord.findUnique({
       where: { key: scopedKey },
     });
 
     if (existing) {
+      cleanupFlight();
       if (existing.requestHash !== requestHash) {
         throw new UnprocessableEntityError(
           'Idempotency-Key has already been used with a different request payload'
@@ -50,24 +69,6 @@ export const handleIdempotency = async (req: Request, res: Response, next: NextF
       res.status(existing.statusCode).json(existing.responseBody);
       return;
     }
-
-    let releaseFlight!: () => void;
-    const flightPromise = new Promise<void>((resolve) => {
-      releaseFlight = resolve;
-    });
-    inFlightKeys.set(scopedKey, flightPromise);
-
-    let released = false;
-    const cleanupFlight = () => {
-      if (!released) {
-        released = true;
-        inFlightKeys.delete(scopedKey);
-        releaseFlight();
-      }
-    };
-
-    res.once('finish', cleanupFlight);
-    res.once('close', cleanupFlight);
 
     const originalJson = res.json.bind(res);
     let persistencePromise: Promise<void> | null = null;
@@ -102,7 +103,6 @@ export const handleIdempotency = async (req: Request, res: Response, next: NextF
               });
             }
           } catch (err) {
-            // Fallback update on concurrent race
             try {
               await prisma.idempotencyRecord.update({
                 where: { key: scopedKey },
@@ -130,7 +130,7 @@ export const handleIdempotency = async (req: Request, res: Response, next: NextF
 
     next();
   } catch (error) {
-    inFlightKeys.delete(scopedKey);
+    cleanupFlight();
     next(error);
   }
 };
