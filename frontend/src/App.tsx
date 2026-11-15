@@ -21,7 +21,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-[60vh]">
-        <div className="w-8 h-8 border-4 border-indigo-500 border-t-transparent rounded-full animate-spin" />
+        <div className="w-8 h-8 border-2 border-[#d4ff33] border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -36,7 +36,7 @@ const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({ children }) =
 export const App: React.FC = () => {
   return (
     <BrowserRouter>
-      <div className="min-h-screen flex flex-col bg-[#0a0d14] text-slate-100">
+      <div className="min-h-screen flex flex-col bg-[#080a08] text-[#f5f7f2]">
         <Navbar />
         <main className="flex-1">
           <Routes>

@@ -115,3 +115,16 @@ export interface AnnouncementSummary {
   };
 }
 
+export interface Hackathon {
+  id: string;
+  title: string;
+  description?: string | null;
+  startDate: string;
+  endDate: string;
+  minTeamSize?: number;
+  maxTeamSize?: number;
+  isActive?: boolean;
+  teamCount?: number;
+  createdAt?: string;
+}
+

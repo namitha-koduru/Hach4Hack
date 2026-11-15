@@ -32,6 +32,9 @@
     "typescript"
   ],
   "author": "TeamForge Core Engineering",
-  "license": "MIT"
+  "license": "MIT",
+  "dependencies": {
+    "@types/three": "^0.187.0",
+    "three": "^0.187.0"
+  }
 }
-

@@ -2,15 +2,26 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, generateIdempotencyKey } from '../services/api';
 import { useAuth } from '../context/AuthContext';
-import { PlusCircle, AlertCircle, X, Sparkles, KeyRound } from 'lucide-react';
+import { Plus, AlertCircle, X, KeyRound } from 'lucide-react';
 
 const SUGGESTED_SKILLS = [
-  'TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Python', 'Go', 'Rust',
-  'Docker', 'AWS', 'TailwindCSS', 'UI/UX Design', 'Kubernetes', 'GraphQL'
+  'TypeScript',
+  'React',
+  'Node.js',
+  'PostgreSQL',
+  'Python',
+  'Go',
+  'Rust',
+  'Docker',
+  'AWS',
+  'TailwindCSS',
+  'UI/UX Design',
+  'Kubernetes',
+  'GraphQL',
 ];
 
 export const CreateTeamPage: React.FC = () => {
-  const { user, refreshUser } = useAuth();
+  const { refreshUser } = useAuth();
   const navigate = useNavigate();
 
   const [hackathons, setHackathons] = useState<any[]>([]);
@@ -79,15 +90,17 @@ export const CreateTeamPage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">
-      <div className="bg-[#111726] border border-slate-800 rounded-2xl p-8 shadow-2xl">
-        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-800">
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <PlusCircle className="w-6 h-6" />
+      <div className="bg-[#111411] border border-white/15 rounded-xl p-6 sm:p-8">
+        <div className="flex items-center gap-3.5 mb-6 pb-6 border-b border-white/10">
+          <div className="w-11 h-11 rounded-lg bg-[#d4ff33] text-[#080a08] flex items-center justify-center shrink-0">
+            <Plus className="w-6 h-6 stroke-[2.5]" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Create a Hackathon Team</h1>
-            <p className="text-xs text-slate-400">
-              Form your squad with atomic concurrency locking & deterministic succession
+            <h1 className="font-display text-2xl font-extrabold uppercase tracking-tight text-[#f5f7f2]">
+              Create a Hackathon Team
+            </h1>
+            <p className="text-xs text-[#9ca396] mt-0.5">
+              Atomic concurrency seat locks &amp; deterministic leadership succession
             </p>
           </div>
         </div>
@@ -100,27 +113,25 @@ export const CreateTeamPage: React.FC = () => {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {/* Hackathon Select */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
               Select Hackathon
             </label>
             <select
               value={selectedHackathonId}
               onChange={(e) => setSelectedHackathonId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white focus-visible:ring-indigo-500"
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] focus:border-[#d4ff33] focus:outline-none"
             >
               {hackathons.map((h) => (
                 <option key={h.id} value={h.id}>
-                  {h.title} (Team Size: {h.minTeamSize}-{h.maxTeamSize})
+                  {h.title} (Size: {h.minTeamSize}–{h.maxTeamSize})
                 </option>
               ))}
             </select>
           </div>
 
-          {/* Team Name */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
               Team Name (Unique within Hackathon)
             </label>
             <input
@@ -131,34 +142,32 @@ export const CreateTeamPage: React.FC = () => {
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder="e.g. Distributed Titans"
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none"
             />
           </div>
 
-          {/* Description */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">
-              Team Description & Project Vision
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+              Project Vision
             </label>
             <textarea
               rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Describe what you plan to build, your tech stack, and goals..."
-              className="w-full px-4 py-2.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500 resize-none"
+              placeholder="Describe what you plan to build and your target stack..."
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none resize-none"
             />
           </div>
 
-          {/* Required Skills */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-2">
-              Required Skills You Are Looking For
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-2">
+              Required Stack
             </label>
             <div className="flex flex-wrap gap-1.5 mb-2.5">
               {requiredSkills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
+                  className="inline-flex items-center gap-1.5 font-mono px-2.5 py-1 rounded text-xs font-medium bg-[#d4ff33]/10 text-[#d4ff33] border border-[#d4ff33]/30"
                 >
                   {skill}
                   <button
@@ -184,26 +193,24 @@ export const CreateTeamPage: React.FC = () => {
                   }
                 }}
                 placeholder="Type skill & press Enter"
-                className="flex-1 px-4 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                className="flex-1 px-4 py-2 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => addSkill(skillInput)}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#161a16] hover:border-[#d4ff33]/50 text-[#f5f7f2] border border-white/15"
               >
                 Add
               </button>
             </div>
 
-            {/* Suggested quick chips */}
-            <div className="flex flex-wrap gap-1">
-              <span className="text-[10px] text-slate-500 mr-1 self-center">Suggestions:</span>
+            <div className="flex flex-wrap gap-1.5">
               {SUGGESTED_SKILLS.slice(0, 7).map((s) => (
                 <button
                   type="button"
                   key={s}
                   onClick={() => addSkill(s)}
-                  className="text-[10px] px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800"
+                  className="font-mono text-[10px] px-2 py-0.5 rounded bg-[#080a08] hover:border-[#d4ff33]/40 text-[#9ca396] hover:text-[#d4ff33] border border-white/10"
                 >
                   +{s}
                 </button>
@@ -211,16 +218,15 @@ export const CreateTeamPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Generate Invite Checkbox */}
-          <div className="p-4 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between">
-            <div className="flex items-center gap-2.5">
-              <KeyRound className="w-4 h-4 text-indigo-400" />
+          <label className="p-4 rounded-xl bg-[#080a08] border border-white/10 flex items-center justify-between cursor-pointer">
+            <div className="flex items-center gap-3">
+              <KeyRound className="w-4 h-4 text-[#d4ff33] shrink-0" />
               <div>
-                <span className="text-xs font-semibold text-slate-200 block">
+                <span className="text-xs font-semibold text-[#f5f7f2] block">
                   Generate One-Time Invitation Code
                 </span>
-                <span className="text-[11px] text-slate-500">
-                  Allows direct invite-based recruitment bypassing public requests
+                <span className="text-[11px] text-[#9ca396]">
+                  Allows direct invite-based recruitment
                 </span>
               </div>
             </div>
@@ -228,14 +234,14 @@ export const CreateTeamPage: React.FC = () => {
               type="checkbox"
               checked={generateInvite}
               onChange={(e) => setGenerateInvite(e.target.checked)}
-              className="w-4 h-4 rounded text-indigo-600 bg-slate-800 border-slate-700 focus:ring-indigo-500"
+              className="w-4 h-4 accent-[#d4ff33] rounded"
             />
-          </div>
+          </label>
 
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all shadow-md shadow-indigo-600/20"
+            className="w-full py-3 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] disabled:opacity-50 transition-colors"
           >
             {loading ? 'Creating Squad...' : 'Create Team & Claim Leadership'}
           </button>
@@ -244,4 +250,5 @@ export const CreateTeamPage: React.FC = () => {
     </div>
   );
 };
+
 

@@ -1,12 +1,7 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { apiClient } from '../services/api';
-import { User, Check, AlertCircle, Plus, X } from 'lucide-react';
-
-const COMMON_SKILLS = [
-  'TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Python', 'Go', 'Rust',
-  'Docker', 'AWS', 'TailwindCSS', 'UI/UX Design', 'Kubernetes', 'GraphQL', 'Machine Learning'
-];
+import { User, Check, AlertCircle, X } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
   const { user, refreshUser } = useAuth();
@@ -17,7 +12,10 @@ export const ProfilePage: React.FC = () => {
   const [skillInput, setSkillInput] = useState('');
   const [timezone, setTimezone] = useState(user?.timezone || 'UTC');
   const [loading, setLoading] = useState(false);
-  const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  const [feedback, setFeedback] = useState<{
+    type: 'success' | 'error';
+    message: string;
+  } | null>(null);
 
   const addSkill = (skill: string) => {
     const trimmed = skill.trim();
@@ -56,15 +54,17 @@ export const ProfilePage: React.FC = () => {
 
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">
-      <div className="bg-[#111726] border border-slate-800 rounded-2xl p-8 shadow-2xl">
-        <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-800">
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400">
-            <User className="w-6 h-6" />
+      <div className="bg-[#111411] border border-white/15 rounded-xl p-6 sm:p-8">
+        <div className="flex items-center gap-3.5 mb-6 pb-6 border-b border-white/10">
+          <div className="w-11 h-11 rounded-lg bg-[#d4ff33] text-[#080a08] flex items-center justify-center shrink-0">
+            <User className="w-5 h-5 stroke-[2.2]" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-white">Your Participant Profile</h1>
-            <p className="text-xs text-slate-400">
-              Manage your skills and preferences to improve algorithmic teammate matching
+            <h1 className="font-display text-2xl font-extrabold uppercase tracking-tight text-[#f5f7f2]">
+              Participant Profile
+            </h1>
+            <p className="text-xs text-[#9ca396] mt-0.5">
+              Update your technical stack and timezone for smarter squad matching
             </p>
           </div>
         </div>
@@ -73,54 +73,66 @@ export const ProfilePage: React.FC = () => {
           <div
             className={`mb-6 p-4 rounded-xl text-xs flex items-center gap-2 ${
               feedback.type === 'success'
-                ? 'bg-emerald-500/10 border border-emerald-500/20 text-emerald-400'
+                ? 'bg-[#d4ff33]/10 border border-[#d4ff33]/30 text-[#d4ff33]'
                 : 'bg-rose-500/10 border border-rose-500/20 text-rose-400'
             }`}
           >
-            {feedback.type === 'success' ? <Check className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+            {feedback.type === 'success' ? (
+              <Check className="w-4 h-4 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 shrink-0" />
+            )}
             <span>{feedback.message}</span>
           </div>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-5">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Email (Permanent)</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+              Email (Permanent)
+            </label>
             <input
               type="email"
               disabled
               value={user?.email || ''}
-              className="w-full px-4 py-2 bg-slate-900/60 border border-slate-800 rounded-xl text-xs text-slate-400 cursor-not-allowed"
+              className="w-full px-4 py-2.5 bg-[#080a08]/60 border border-white/10 rounded-lg text-xs font-mono text-[#9ca396] cursor-not-allowed"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+              Full Name
+            </label>
             <input
               type="text"
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white focus-visible:ring-indigo-500"
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] focus:border-[#d4ff33] focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Bio</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+              Bio
+            </label>
             <textarea
               rows={3}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white focus-visible:ring-indigo-500 resize-none"
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] focus:border-[#d4ff33] focus:outline-none resize-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-2">Technical Skills</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-2">
+              Technical Skills
+            </label>
             <div className="flex flex-wrap gap-1.5 mb-2.5">
               {skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
+                  className="inline-flex items-center gap-1.5 font-mono px-2.5 py-1 rounded text-xs font-medium bg-[#d4ff33]/10 text-[#d4ff33] border border-[#d4ff33]/30"
                 >
                   {skill}
                   <button
@@ -146,12 +158,12 @@ export const ProfilePage: React.FC = () => {
                   }
                 }}
                 placeholder="Add skill..."
-                className="flex-1 px-4 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                className="flex-1 px-4 py-2 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => addSkill(skillInput)}
-                className="px-3.5 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200"
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#161a16] hover:border-[#d4ff33]/50 text-[#f5f7f2] border border-white/15"
               >
                 Add
               </button>
@@ -159,11 +171,13 @@ export const ProfilePage: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Primary Time Zone</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+              Primary Time Zone
+            </label>
             <select
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white focus-visible:ring-indigo-500"
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] focus:border-[#d4ff33] focus:outline-none"
             >
               <option value="UTC">UTC (Coordinated Universal Time)</option>
               <option value="America/New_York">America/New_York (UTC-5)</option>
@@ -180,7 +194,7 @@ export const ProfilePage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all shadow-md shadow-indigo-600/20"
+            className="w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] disabled:opacity-50 transition-colors"
           >
             {loading ? 'Saving Changes...' : 'Save Profile Changes'}
           </button>
@@ -189,4 +203,5 @@ export const ProfilePage: React.FC = () => {
     </div>
   );
 };
+
 

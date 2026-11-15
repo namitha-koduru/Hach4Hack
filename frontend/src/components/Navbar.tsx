@@ -1,24 +1,10 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useSocket } from '../context/SocketContext';
-import {
-  Users,
-  Shield,
-  LogOut,
-  User,
-  PlusCircle,
-  Menu,
-  X,
-  Compass,
-  Trophy,
-  Sparkles,
-  Inbox,
-} from 'lucide-react';
+import { LogOut, User, Plus, Menu, X, Terminal } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
-  const { isConnected } = useSocket();
   const navigate = useNavigate();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -29,211 +15,192 @@ export const Navbar: React.FC = () => {
   };
 
   const navLinks = [
-    { name: 'Discover Teams', href: '/teams', icon: Compass },
-    { name: 'Hackathons', href: '/hackathons', icon: Trophy },
+    { name: 'Teams', href: '/teams' },
+    { name: 'Hackathons', href: '/hackathons' },
   ];
 
   if (user) {
-    navLinks.push({ name: 'Dashboard', href: '/dashboard', icon: Users });
-    navLinks.push({ name: 'Requests', href: '/requests', icon: Inbox });
+    navLinks.push({ name: 'Dashboard', href: '/dashboard' });
+    navLinks.push({ name: 'Requests', href: '/requests' });
     if (user.role === 'ADMIN') {
-      navLinks.push({ name: 'Admin', href: '/admin', icon: Shield });
+      navLinks.push({ name: 'Admin', href: '/admin' });
     }
   }
 
   const isActive = (path: string) => location.pathname === path;
 
   return (
-    <nav className="sticky top-0 z-50 bg-[#0d121f]/90 backdrop-blur-md border-b border-slate-800/80 transition-colors">
+    <header className="sticky top-0 z-50 bg-[#080a08]/95 border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Brand Logo */}
-          <div className="flex items-center gap-6">
-            <Link
-              to="/"
-              className="flex items-center gap-2.5 text-white font-extrabold text-xl tracking-tight group focus-visible:ring-indigo-500 rounded-lg p-1"
-            >
-              <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/25 group-hover:scale-105 transition-transform">
-                <Users className="w-5 h-5 text-white" />
-              </div>
-              <span className="bg-gradient-to-r from-white via-slate-100 to-indigo-200 bg-clip-text text-transparent">
-                TeamForge
-              </span>
-              <span className="hidden sm:inline-block px-2 py-0.5 text-[10px] font-semibold tracking-wider uppercase rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
-                PS1 Scale
-              </span>
-            </Link>
+        <div className="flex items-center justify-between h-16 gap-8">
+          {/* Zone 1: Brand Wordmark */}
+          <Link
+            to="/"
+            className="flex items-center gap-2.5 text-[#f5f7f2] font-display font-extrabold text-lg tracking-tight whitespace-nowrap shrink-0 group focus-visible:outline-none"
+          >
+            <span className="w-8 h-8 rounded-lg bg-[#d4ff33] text-[#080a08] flex items-center justify-center transition-transform duration-300 group-hover:rotate-6">
+              <Terminal className="w-4 h-4 stroke-[2.5]" />
+            </span>
+            <span className="tracking-tight">TEAMFORGE</span>
+          </Link>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex items-center space-x-1">
-              {navLinks.map((link) => {
-                const Icon = link.icon;
-                const active = isActive(link.href);
-                return (
-                  <Link
-                    key={link.name}
-                    to={link.href}
-                    className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
-                      active
-                        ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 shadow-sm'
-                        : 'text-slate-300 hover:text-white hover:bg-slate-800/50'
-                    }`}
-                  >
-                    <Icon className="w-4 h-4" />
-                    {link.name}
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right Action Bar */}
-          <div className="hidden md:flex items-center gap-4">
-            {/* Real-time Status Indicator */}
-            <div
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-slate-900 border border-slate-800"
-              title={isConnected ? 'Live WebSocket Connected' : 'Connecting to live events...'}
-            >
-              <span
-                className={`w-2 h-2 rounded-full ${
-                  isConnected ? 'bg-emerald-400 animate-pulse' : 'bg-amber-400'
-                }`}
-              />
-              <span className="text-slate-400 text-[11px]">
-                {isConnected ? 'Real-Time Live' : 'Reconnecting'}
-              </span>
-            </div>
-
-            {user ? (
-              <div className="flex items-center gap-3">
+          {/* Zone 2: Navigation Links */}
+          <nav aria-label="Primary" className="hidden md:flex items-center gap-7">
+            {navLinks.map((link) => {
+              const active = isActive(link.href);
+              return (
                 <Link
-                  to="/teams/create"
-                  className="flex items-center gap-2 px-3.5 py-1.5 rounded-lg text-xs font-semibold bg-gradient-to-r from-indigo-600 to-indigo-500 text-white hover:from-indigo-500 hover:to-indigo-400 shadow-md shadow-indigo-600/20 transition-all"
+                  key={link.name}
+                  to={link.href}
+                  className={`relative py-1 text-sm font-medium whitespace-nowrap transition-colors ${
+                    active ? 'text-[#d4ff33]' : 'text-[#9ca396] hover:text-[#f5f7f2]'
+                  }`}
                 >
-                  <PlusCircle className="w-4 h-4" />
-                  Create Team
+                  {link.name}
+                  {active && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute left-0 right-0 -bottom-0.5 h-[2px] bg-[#d4ff33]"
+                    />
+                  )}
                 </Link>
+              );
+            })}
+          </nav>
 
+          {/* Zone 3: Primary Action Bar */}
+          <div className="hidden md:flex items-center gap-3 shrink-0">
+            {user ? (
+              <>
                 <Link
                   to="/profile"
-                  className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800/60 hover:bg-slate-800 border border-slate-700/60 transition-colors"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium text-[#f5f7f2] bg-[#111411] hover:bg-[#161a16] border border-white/10 whitespace-nowrap transition-colors"
                 >
-                  <User className="w-3.5 h-3.5 text-indigo-400" />
+                  <User className="w-3.5 h-3.5 text-[#d4ff33]" />
                   <span>{user.name}</span>
                 </Link>
 
+                <Link
+                  to="/teams/create"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] whitespace-nowrap transition-colors"
+                >
+                  <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Create Team</span>
+                </Link>
+
                 <button
+                  type="button"
                   onClick={handleLogout}
-                  className="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-rose-500/10 transition-colors"
+                  className="p-2 rounded-lg text-[#9ca396] hover:text-rose-400 hover:bg-rose-500/10 border border-transparent hover:border-rose-500/20 transition-colors"
                   title="Log out"
                   aria-label="Log out"
                 >
                   <LogOut className="w-4 h-4" />
                 </button>
-              </div>
+              </>
             ) : (
-              <div className="flex items-center gap-3">
+              <>
                 <Link
                   to="/login"
-                  className="px-3.5 py-1.5 rounded-lg text-xs font-medium text-slate-300 hover:text-white hover:bg-slate-800 transition-colors"
+                  className="px-3.5 py-2 rounded-lg text-xs font-semibold text-[#9ca396] hover:text-[#f5f7f2] whitespace-nowrap transition-colors"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/register"
-                  className="px-4 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all"
+                  className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] whitespace-nowrap transition-colors"
                 >
-                  Sign Up
+                  Register Now
                 </Link>
-              </div>
+              </>
             )}
           </div>
 
-          {/* Mobile Menu Button */}
-          <div className="md:hidden flex items-center gap-2">
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 focus-visible:ring-indigo-500"
-              aria-label="Toggle Navigation Menu"
-            >
-              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-            </button>
-          </div>
+          {/* Mobile Menu Toggle */}
+          <button
+            type="button"
+            onClick={() => setMobileMenuOpen((v) => !v)}
+            className="md:hidden p-2 rounded-lg text-[#9ca396] hover:text-[#f5f7f2] hover:bg-[#111411] border border-white/10"
+            aria-label="Toggle Navigation Menu"
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+          </button>
         </div>
       </div>
 
-      {/* Mobile Drawer Menu */}
+      {/* Mobile Drawer */}
       {mobileMenuOpen && (
-        <div className="md:hidden bg-[#0d121f] border-b border-slate-800 px-4 pt-2 pb-6 space-y-3">
+        <div className="md:hidden bg-[#080a08] border-b border-white/10 px-4 pt-3 pb-6 space-y-4">
           <div className="space-y-1">
             {navLinks.map((link) => (
               <Link
                 key={link.name}
                 to={link.href}
                 onClick={() => setMobileMenuOpen(false)}
-                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-base font-medium ${
+                className={`block px-3 py-2.5 rounded-lg text-sm font-medium ${
                   isActive(link.href)
-                    ? 'bg-indigo-600/20 text-indigo-400'
-                    : 'text-slate-300 hover:bg-slate-800'
+                    ? 'bg-[#d4ff33]/10 text-[#d4ff33] border border-[#d4ff33]/30'
+                    : 'text-[#9ca396] hover:text-[#f5f7f2] hover:bg-[#111411]'
                 }`}
               >
-                <link.icon className="w-5 h-5" />
                 {link.name}
               </Link>
             ))}
           </div>
 
-          <div className="pt-4 border-t border-slate-800/80 space-y-2">
+          <div className="pt-3 border-t border-white/10 space-y-2.5">
             {user ? (
               <>
                 <Link
                   to="/teams/create"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-sm font-semibold bg-indigo-600 text-white"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] text-[#080a08]"
                 >
-                  <PlusCircle className="w-4 h-4" />
+                  <Plus className="w-4 h-4 stroke-[2.5]" />
                   Create Team
                 </Link>
                 <Link
                   to="/profile"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center justify-center gap-2 w-full py-2 rounded-lg text-sm text-slate-300 bg-slate-800"
+                  className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-xs font-medium text-[#f5f7f2] bg-[#111411] border border-white/10"
                 >
-                  <User className="w-4 h-4 text-indigo-400" />
-                  Signed in as {user.name}
+                  <User className="w-3.5 h-3.5 text-[#d4ff33]" />
+                  {user.name}
                 </Link>
                 <button
+                  type="button"
                   onClick={() => {
                     handleLogout();
                     setMobileMenuOpen(false);
                   }}
-                  className="w-full py-2 rounded-lg text-sm text-rose-400 bg-rose-500/10 hover:bg-rose-500/20 transition-colors"
+                  className="w-full py-2 rounded-lg text-xs font-semibold text-rose-400 bg-rose-500/10 border border-rose-500/20"
                 >
                   Log Out
                 </button>
               </>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 gap-2.5">
                 <Link
                   to="/login"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-center py-2 rounded-lg text-sm text-slate-300 bg-slate-800"
+                  className="text-center py-2.5 rounded-lg text-xs font-semibold text-[#f5f7f2] bg-[#111411] border border-white/10"
                 >
                   Log In
                 </Link>
                 <Link
                   to="/register"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="text-center py-2 rounded-lg text-sm font-semibold bg-indigo-600 text-white"
+                  className="text-center py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] text-[#080a08]"
                 >
-                  Sign Up
+                  Register
                 </Link>
               </div>
             )}
           </div>
         </div>
       )}
-    </nav>
+    </header>
   );
 };
+
 

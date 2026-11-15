@@ -4,9 +4,9 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { apiClient } from '../services/api';
 import { InviteModal } from '../components/InviteModal';
+import { InteractiveTiltCard } from '../components/InteractiveTiltCard';
 import {
   Users,
-  Trophy,
   Crown,
   KeyRound,
   LogOut,
@@ -14,9 +14,8 @@ import {
   Clock,
   Sparkles,
   Inbox,
+  Plus,
   AlertCircle,
-  PlusCircle,
-  CheckCircle2,
 } from 'lucide-react';
 
 export const DashboardPage: React.FC = () => {
@@ -26,11 +25,13 @@ export const DashboardPage: React.FC = () => {
   const [redeemModalOpen, setRedeemModalOpen] = useState(false);
   const [activeTeamDetails, setActiveTeamDetails] = useState<any>(null);
   const [leaveLoading, setLeaveLoading] = useState(false);
+  const [confirmLeave, setConfirmLeave] = useState(false);
+  const [leaveError, setLeaveError] = useState<string | null>(null);
 
-  const activeMembership = user?.memberships && user.memberships.length > 0 ? user.memberships[0] : null;
+  const activeMembership =
+    user?.memberships && user.memberships.length > 0 ? user.memberships[0] : null;
   const isLeader = activeMembership?.role === 'LEADER';
 
-  // Fetch full team data if in a team
   useEffect(() => {
     if (activeMembership?.teamId) {
       apiClient(`/teams/${activeMembership.teamId}`)
@@ -41,14 +42,15 @@ export const DashboardPage: React.FC = () => {
     }
   }, [activeMembership?.teamId]);
 
-  // Real-time synchronization
   useEffect(() => {
     if (!socket) return;
 
     const handleUpdate = () => {
       refreshUser();
       if (activeMembership?.teamId) {
-        apiClient(`/teams/${activeMembership.teamId}`).then((res) => setActiveTeamDetails(res.data));
+        apiClient(`/teams/${activeMembership.teamId}`).then((res) =>
+          setActiveTeamDetails(res.data)
+        );
       }
     };
 
@@ -74,19 +76,15 @@ export const DashboardPage: React.FC = () => {
 
   const handleLeaveTeam = async () => {
     if (!activeMembership?.teamId) return;
-    const confirmText = isLeader && activeTeamDetails?.members?.length > 1
-      ? 'You are the LEADER. Leaving will transfer leadership to the oldest remaining member. Proceed?'
-      : 'Are you sure you want to leave this team?';
-
-    if (!window.confirm(confirmText)) return;
-
     setLeaveLoading(true);
+    setLeaveError(null);
     try {
       await apiClient(`/teams/${activeMembership.teamId}/leave`, { method: 'POST' });
       await refreshUser();
       setActiveTeamDetails(null);
+      setConfirmLeave(false);
     } catch (err: any) {
-      alert(err.message || 'Failed to leave team');
+      setLeaveError(err.message || 'Failed to leave team');
     } finally {
       setLeaveLoading(false);
     }
@@ -94,55 +92,88 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      {/* Welcome Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-2xl bg-gradient-to-r from-indigo-950/40 via-slate-900 to-slate-900 border border-indigo-500/20 shadow-xl">
+      {/* Command Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-6 sm:p-8 rounded-xl bg-[#111411] border border-white/15">
         <div>
-          <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold mb-2">
+          <div className="flex items-center gap-2 font-mono text-xs uppercase tracking-[0.2em] text-[#d4ff33] mb-2">
             <Sparkles className="w-4 h-4" />
             <span>Participant Command Center</span>
           </div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-white">
+          <h1 className="font-display text-2xl sm:text-3xl font-extrabold uppercase tracking-tight text-[#f5f7f2]">
             Welcome, {user?.name}
           </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Timezone: <span className="text-slate-200 font-mono">{user?.timezone}</span> • Roles:{' '}
-            <span className="text-slate-200">{user?.preferredRoles.join(', ')}</span>
+          <p className="font-mono text-xs text-[#9ca396] mt-1">
+            {user?.timezone} · {user?.preferredRoles.join(', ') || 'Builder'}
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <button
+            type="button"
             onClick={() => setRedeemModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all shadow-sm"
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-semibold bg-[#161a16] hover:border-[#d4ff33]/50 text-[#f5f7f2] border border-white/15 transition-colors"
           >
-            <KeyRound className="w-4 h-4 text-indigo-400" />
-            Redeem Invite Code
+            <KeyRound className="w-4 h-4 text-[#d4ff33]" />
+            Redeem Invite
           </button>
 
           {!activeMembership && (
             <Link
               to="/teams/create"
-              className="flex items-center gap-2 px-4 py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all"
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] transition-colors"
             >
-              <PlusCircle className="w-4 h-4" />
+              <Plus className="w-4 h-4 stroke-[2.5]" />
               Create Team
             </Link>
           )}
         </div>
       </div>
 
-      {/* Main Grid */}
+      {leaveError && (
+        <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{leaveError}</span>
+        </div>
+      )}
+
+      {confirmLeave && (
+        <div className="p-4 rounded-xl bg-[#111411] border border-[#d4ff33]/50 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <p className="text-xs text-[#f5f7f2]">
+            {isLeader && activeTeamDetails?.members?.length > 1
+              ? 'You are the LEADER. Leaving transfers leadership atomically to the oldest remaining member. Proceed?'
+              : 'Confirm leaving your current squad?'}
+          </p>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => setConfirmLeave(false)}
+              className="px-3.5 py-1.5 rounded-lg text-xs text-[#9ca396] bg-[#161a16] border border-white/10"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleLeaveTeam}
+              disabled={leaveLoading}
+              className="px-4 py-1.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-rose-600 hover:bg-rose-500 text-white disabled:opacity-50"
+            >
+              {leaveLoading ? 'Leaving...' : 'Confirm Leave'}
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-3 gap-8">
-        {/* Left 2 Cols: Current Team Status */}
+        {/* Left 2 Cols: Current Team */}
         <div className="lg:col-span-2 space-y-6">
-          <div className="bg-[#111726] border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-800 mb-6">
-              <h2 className="text-base font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-indigo-400" />
+          <div className="bg-[#111411] border border-white/10 rounded-xl p-6">
+            <div className="flex items-center justify-between pb-4 border-b border-white/10 mb-6">
+              <h2 className="font-display text-base font-bold text-[#f5f7f2] flex items-center gap-2 uppercase tracking-wide">
+                <Users className="w-5 h-5 text-[#d4ff33]" />
                 <span>Your Current Team</span>
               </h2>
               {activeMembership && (
-                <span className="px-2.5 py-1 rounded-full text-[11px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30">
+                <span className="font-mono text-[11px] uppercase tracking-widest text-[#d4ff33]">
                   {isLeader ? 'Leader' : 'Member'}
                 </span>
               )}
@@ -152,126 +183,129 @@ export const DashboardPage: React.FC = () => {
               <div className="space-y-6">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                   <div>
-                    <span className="text-xs text-indigo-400 font-medium block mb-1">
+                    <span className="font-mono text-xs uppercase tracking-wider text-[#d4ff33] block mb-1">
                       {activeTeamDetails.hackathon?.title}
                     </span>
-                    <h3 className="text-2xl font-extrabold text-white">
+                    <h3 className="font-display text-2xl font-extrabold text-[#f5f7f2]">
                       {activeTeamDetails.name}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1 max-w-xl">
+                    <p className="text-xs text-[#9ca396] mt-1 max-w-xl">
                       {activeTeamDetails.description || 'No description provided'}
                     </p>
                   </div>
 
-                  <div className="text-right shrink-0">
-                    <span className="text-xs font-semibold text-slate-400 block mb-1">Capacity</span>
-                    <span className="text-xl font-mono font-bold text-white">
+                  <div className="sm:text-right shrink-0">
+                    <span className="font-mono text-[11px] uppercase tracking-wider text-[#9ca396] block mb-1">
+                      Capacity
+                    </span>
+                    <span className="text-xl font-mono font-bold text-[#f5f7f2] tabular-nums">
                       {activeTeamDetails.currentMemberCount} / {activeTeamDetails.maxMembers}
                     </span>
-                    <span className="text-[11px] text-emerald-400 block mt-0.5">
-                      {activeTeamDetails.availableSeats} seats remaining
+                    <span className="font-mono text-[11px] text-[#d4ff33] block mt-0.5 tabular-nums">
+                      {activeTeamDetails.availableSeats} seats left
                     </span>
                   </div>
                 </div>
 
-                {/* Team Members List */}
                 <div>
-                  <h4 className="text-xs font-semibold text-slate-300 uppercase tracking-wider mb-3">
+                  <h4 className="font-mono text-[11px] text-[#9ca396] uppercase tracking-wider mb-3">
                     Active Team Roster ({activeTeamDetails.members?.length})
                   </h4>
                   <div className="grid sm:grid-cols-2 gap-3">
                     {activeTeamDetails.members?.map((m: any) => (
-                      <div
+                      <InteractiveTiltCard
                         key={m.id}
-                        className="p-3.5 rounded-xl bg-slate-900 border border-slate-800/80 flex items-start gap-3"
+                        maxTiltDeg={5}
+                        className="p-3.5 rounded-xl bg-[#080a08] border border-white/10"
                       >
-                        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 font-bold text-xs shrink-0 mt-0.5">
-                          {m.user?.name.charAt(0)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className="text-xs font-bold text-white truncate">
-                              {m.user?.name}
+                        <div className="flex items-start gap-3">
+                          <div className="w-8 h-8 rounded-lg bg-[#d4ff33]/10 border border-[#d4ff33]/30 flex items-center justify-center text-[#d4ff33] font-display font-bold text-xs shrink-0 mt-0.5">
+                            {m.user?.name.charAt(0)}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-1.5">
+                              <span className="text-xs font-bold text-[#f5f7f2] truncate">
+                                {m.user?.name}
+                              </span>
+                              {m.role === 'LEADER' && (
+                                <Crown className="w-3.5 h-3.5 text-[#d4ff33] shrink-0" />
+                              )}
+                            </div>
+                            <span className="text-[11px] text-[#9ca396] block font-mono">
+                              {m.user?.timezone}
                             </span>
-                            {m.role === 'LEADER' && (
-                              <span title="Team Leader">
-                                <Crown className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-                              </span>
-                            )}
-                          </div>
-                          <span className="text-[11px] text-slate-400 block font-mono">
-                            {m.user?.timezone}
-                          </span>
-                          <div className="flex flex-wrap gap-1 mt-1.5">
-                            {m.user?.skills.slice(0, 3).map((s: string) => (
-                              <span
-                                key={s}
-                                className="text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300"
-                              >
-                                {s}
-                              </span>
-                            ))}
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {m.user?.skills.slice(0, 3).map((s: string) => (
+                                <span
+                                  key={s}
+                                  className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-[#161a16] border border-white/10 text-[#f5f7f2]"
+                                >
+                                  {s}
+                                </span>
+                              ))}
+                            </div>
                           </div>
                         </div>
-                      </div>
+                      </InteractiveTiltCard>
                     ))}
                   </div>
                 </div>
 
-                {/* Team Actions */}
-                <div className="pt-4 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
+                <div className="pt-4 border-t border-white/10 flex flex-wrap items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
                     <Link
                       to={`/teams/${activeTeamDetails.id}`}
-                      className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition-all shadow-md shadow-indigo-600/20"
+                      className="px-4 py-2 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] transition-colors"
                     >
-                      Team Details & Audit History
+                      Team Details &amp; Audit
                     </Link>
 
                     {isLeader && (
                       <button
+                        type="button"
                         onClick={() => setInviteModalOpen(true)}
-                        className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-medium text-slate-200 bg-slate-800 hover:bg-slate-700 border border-slate-700 transition-colors"
+                        className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-medium text-[#f5f7f2] bg-[#161a16] hover:border-[#d4ff33]/50 border border-white/15 transition-colors"
                       >
-                        <KeyRound className="w-3.5 h-3.5 text-indigo-400" />
+                        <KeyRound className="w-3.5 h-3.5 text-[#d4ff33]" />
                         Invite Code
                       </button>
                     )}
                   </div>
 
                   <button
-                    onClick={handleLeaveTeam}
+                    type="button"
+                    onClick={() => setConfirmLeave(true)}
                     disabled={leaveLoading}
-                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 transition-colors"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-lg text-xs font-semibold text-rose-400 hover:bg-rose-500/10 border border-rose-500/30 transition-colors"
                   >
                     <LogOut className="w-3.5 h-3.5" />
-                    {leaveLoading ? 'Processing...' : 'Leave Team'}
+                    Leave Team
                   </button>
                 </div>
               </div>
             ) : (
               <div className="text-center py-12 px-4">
-                <div className="w-12 h-12 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-slate-400 mx-auto mb-3">
+                <div className="w-12 h-12 rounded-xl bg-[#080a08] border border-white/10 flex items-center justify-center text-[#9ca396] mx-auto mb-3">
                   <Users className="w-6 h-6" />
                 </div>
-                <h3 className="text-base font-bold text-white mb-1">
+                <h3 className="font-display text-base font-bold text-[#f5f7f2] mb-1">
                   You are not currently in a team
                 </h3>
-                <p className="text-xs text-slate-400 max-w-md mx-auto mb-6">
-                  Browse open teams looking for your skills, or create your own team and invite collaborators.
+                <p className="text-xs text-[#9ca396] max-w-md mx-auto mb-6">
+                  Browse open teams looking for your skills, or create your own squad and invite collaborators.
                 </p>
                 <div className="flex items-center justify-center gap-3">
                   <Link
                     to="/teams"
-                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all"
+                    className="px-5 py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] transition-colors"
                   >
                     Explore Open Teams
                   </Link>
                   <Link
                     to="/teams/create"
-                    className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-colors"
+                    className="px-5 py-2.5 rounded-lg text-xs font-semibold bg-[#161a16] text-[#f5f7f2] border border-white/15 hover:border-[#d4ff33]/50 transition-colors"
                   >
-                    Create a Team
+                    Create Squad
                   </Link>
                 </div>
               </div>
@@ -279,13 +313,12 @@ export const DashboardPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right 1 Col: Pending Requests & Quick Links */}
+        {/* Right 1 Col: Pending Requests & Suggestions */}
         <div className="space-y-6">
-          {/* Pending Join Requests */}
-          <div className="bg-[#111726] border border-slate-800 rounded-2xl p-6 shadow-xl">
-            <h2 className="text-sm font-bold text-white flex items-center gap-2 mb-4 pb-3 border-b border-slate-800">
-              <Clock className="w-4 h-4 text-amber-400" />
-              <span>Your Pending Requests</span>
+          <div className="bg-[#111411] border border-white/10 rounded-xl p-6">
+            <h2 className="font-display text-sm font-bold text-[#f5f7f2] flex items-center gap-2 mb-4 pb-3 border-b border-white/10 uppercase tracking-wide">
+              <Clock className="w-4 h-4 text-[#d4ff33]" />
+              <span>Pending Requests</span>
             </h2>
 
             {user?.pendingRequests && user.pendingRequests.length > 0 ? (
@@ -293,17 +326,17 @@ export const DashboardPage: React.FC = () => {
                 {user.pendingRequests.map((req) => (
                   <div
                     key={req.id}
-                    className="p-3 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-between gap-3"
+                    className="p-3 rounded-lg bg-[#080a08] border border-white/10 flex items-center justify-between gap-3"
                   >
                     <div>
-                      <h4 className="text-xs font-bold text-white">{req.team.name}</h4>
-                      <span className="text-[10px] text-amber-400 flex items-center gap-1 mt-0.5">
-                        <Clock className="w-3 h-3" /> Awaiting Leader Decision
+                      <h4 className="text-xs font-bold text-[#f5f7f2]">{req.team.name}</h4>
+                      <span className="font-mono text-[10px] text-amber-300 flex items-center gap-1 mt-0.5">
+                        <Clock className="w-3 h-3" /> Awaiting Leader
                       </span>
                     </div>
                     <Link
                       to="/requests"
-                      className="text-xs font-semibold text-indigo-400 hover:text-indigo-300"
+                      className="font-mono text-xs font-semibold text-[#d4ff33] hover:underline"
                     >
                       Manage
                     </Link>
@@ -311,46 +344,49 @@ export const DashboardPage: React.FC = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-slate-400 text-center py-4">
+              <p className="text-xs text-[#9ca396] text-center py-4">
                 No active outgoing join requests.
               </p>
             )}
 
-            <div className="mt-4 pt-3 border-t border-slate-800 text-center">
+            <div className="mt-4 pt-3 border-t border-white/10 text-center">
               <Link
                 to="/requests"
-                className="text-xs font-semibold text-slate-300 hover:text-white flex items-center justify-center gap-1.5"
+                className="text-xs font-semibold text-[#9ca396] hover:text-[#d4ff33] inline-flex items-center gap-1.5 transition-colors"
               >
-                <Inbox className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Open Requests Manager</span>
+                <Inbox className="w-3.5 h-3.5 text-[#d4ff33]" />
+                <span>Open Requests Dispatcher</span>
               </Link>
             </div>
           </div>
 
-          {/* Complementary Suggestions Shortcut */}
           {activeTeamDetails && (
-            <div className="bg-gradient-to-br from-indigo-950/30 to-[#111726] border border-indigo-500/20 rounded-2xl p-6 shadow-xl">
-              <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold mb-2">
+            <InteractiveTiltCard
+              maxTiltDeg={7}
+              className="bg-[#111411] border border-[#d4ff33]/35 rounded-xl p-6"
+            >
+              <div className="flex items-center gap-2 font-mono text-[#d4ff33] text-xs uppercase tracking-wider mb-2">
                 <Sparkles className="w-4 h-4" />
-                <span>Smart Teammate Matching</span>
+                <span>Smart Matchmaker</span>
               </div>
-              <h3 className="text-base font-bold text-white mb-2">Find Compatible Members</h3>
-              <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-                Our recommendation engine analyzes missing skills (60%) and timezone overlap (40%) to surface ideal candidates.
+              <h3 className="font-display text-base font-bold text-[#f5f7f2] mb-2">
+                Find Compatible Members
+              </h3>
+              <p className="text-xs text-[#9ca396] mb-4 leading-relaxed">
+                Scores candidates across missing squad skills (60%) and timezone overlap (40%).
               </p>
               <Link
                 to={`/teams/${activeTeamDetails.id}/suggestions`}
-                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white shadow-md shadow-indigo-600/20 transition-all"
+                className="flex items-center justify-center gap-2 w-full py-2.5 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] transition-colors"
               >
                 <span>View Recommendations</span>
                 <ArrowRight className="w-3.5 h-3.5" />
               </Link>
-            </div>
+            </InteractiveTiltCard>
           )}
         </div>
       </div>
 
-      {/* Modals */}
       <InviteModal
         isOpen={inviteModalOpen}
         onClose={() => setInviteModalOpen(false)}
@@ -364,3 +400,4 @@ export const DashboardPage: React.FC = () => {
     </div>
   );
 };
+

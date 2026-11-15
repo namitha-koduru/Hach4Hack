@@ -1,14 +1,17 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { UserPlus, AlertCircle, Plus, X } from 'lucide-react';
+import { InteractiveTiltCard } from '../components/InteractiveTiltCard';
+import { UserPlus, AlertCircle, X } from 'lucide-react';
 
-const COMMON_SKILLS = [
-  'TypeScript', 'React', 'Node.js', 'PostgreSQL', 'Python', 'Go', 'Rust',
-  'Docker', 'TailwindCSS', 'UI/UX Design', 'Kubernetes', 'GraphQL', 'AWS'
+const ROLES = [
+  'Frontend Engineer',
+  'Backend Engineer',
+  'Full Stack',
+  'DevOps',
+  'Designer',
+  'Product Manager',
 ];
-
-const ROLES = ['Frontend Engineer', 'Backend Engineer', 'Full Stack', 'DevOps', 'Designer', 'Product Manager'];
 
 export const RegisterPage: React.FC = () => {
   const { register } = useAuth();
@@ -75,18 +78,25 @@ export const RegisterPage: React.FC = () => {
   };
 
   return (
-    <div className="max-w-xl mx-auto py-12 px-4">
-      <div className="bg-[#111726] border border-slate-800 rounded-2xl p-8 shadow-2xl">
+    <div className="min-h-[85vh] flex items-center justify-center py-12 px-4 bg-architectural-grid">
+      <InteractiveTiltCard
+        maxTiltDeg={3}
+        className="w-full max-w-xl bg-[#111411] border border-white/15 rounded-xl p-8"
+      >
         <div className="text-center mb-8">
-          <div className="w-12 h-12 rounded-xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mx-auto mb-4">
-            <UserPlus className="w-6 h-6" />
+          <div className="w-12 h-12 rounded-lg bg-[#d4ff33] text-[#080a08] flex items-center justify-center mx-auto mb-4">
+            <UserPlus className="w-6 h-6 stroke-[2.2]" />
           </div>
-          <h1 className="text-2xl font-bold text-white mb-2">Create Your Account</h1>
-          <p className="text-xs text-slate-400">Join 10,000+ hackathon participants building on TeamForge</p>
+          <h1 className="font-display text-2xl font-extrabold uppercase tracking-tight text-[#f5f7f2] mb-1">
+            Create Your Account
+          </h1>
+          <p className="text-xs text-[#9ca396]">
+            Join 10,000+ hackathon participants building on TeamForge
+          </p>
         </div>
 
         {error && (
-          <div className="mb-6 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
+          <div className="mb-6 p-3 rounded-lg bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
@@ -95,32 +105,38 @@ export const RegisterPage: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Full Name</label>
+              <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+                Full Name
+              </label>
               <input
                 type="text"
                 required
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Alex Rivera"
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-sm text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none"
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">Email Address</label>
+              <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+                Email Address
+              </label>
               <input
                 type="email"
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="alex@example.com"
-                className="w-full px-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-sm text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none"
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Password (Min 8 Characters)</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+              Password (Min 8 Characters)
+            </label>
             <input
               type="password"
               required
@@ -128,34 +144,37 @@ export const RegisterPage: React.FC = () => {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               placeholder="••••••••"
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-sm text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none"
             />
           </div>
 
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Short Bio</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+              Short Bio
+            </label>
             <textarea
               rows={2}
               value={bio}
               onChange={(e) => setBio(e.target.value)}
               placeholder="Passionate about building scalable distributed systems..."
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-sm text-white placeholder-slate-500 focus-visible:ring-indigo-500 resize-none"
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-sm text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none resize-none"
             />
           </div>
 
-          {/* Preferred Roles */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-2">Preferred Roles</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-2">
+              Preferred Roles
+            </label>
             <div className="flex flex-wrap gap-2">
               {ROLES.map((role) => (
                 <button
                   type="button"
                   key={role}
                   onClick={() => toggleRole(role)}
-                  className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${
                     preferredRoles.includes(role)
-                      ? 'bg-indigo-600 text-white shadow-sm'
-                      : 'bg-slate-900 text-slate-400 hover:text-slate-200 border border-slate-800'
+                      ? 'bg-[#d4ff33] text-[#080a08] font-bold'
+                      : 'bg-[#080a08] text-[#9ca396] hover:text-[#f5f7f2] border border-white/15'
                   }`}
                 >
                   {role}
@@ -164,14 +183,15 @@ export const RegisterPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Skills Management */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-2">Technical Skills</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-2">
+              Technical Skills
+            </label>
             <div className="flex flex-wrap gap-1.5 mb-2.5">
               {skills.map((skill) => (
                 <span
                   key={skill}
-                  className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md text-xs font-medium bg-indigo-500/15 text-indigo-300 border border-indigo-500/30"
+                  className="inline-flex items-center gap-1.5 font-mono px-2.5 py-1 rounded text-xs font-medium bg-[#d4ff33]/10 text-[#d4ff33] border border-[#d4ff33]/30"
                 >
                   {skill}
                   <button
@@ -197,25 +217,26 @@ export const RegisterPage: React.FC = () => {
                   }
                 }}
                 placeholder="Type skill & press Enter (e.g., Rust, Docker)"
-                className="flex-1 px-4 py-1.5 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                className="flex-1 px-4 py-2 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] placeholder-[#9ca396]/50 focus:border-[#d4ff33] focus:outline-none"
               />
               <button
                 type="button"
                 onClick={() => addSkill(skillInput)}
-                className="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700"
+                className="px-4 py-2 rounded-lg text-xs font-semibold bg-[#161a16] hover:border-[#d4ff33]/50 text-[#f5f7f2] border border-white/15"
               >
                 Add
               </button>
             </div>
           </div>
 
-          {/* Timezone */}
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1.5">Primary Time Zone</label>
+            <label className="block font-mono text-[11px] uppercase tracking-wider text-[#9ca396] mb-1.5">
+              Primary Time Zone
+            </label>
             <select
               value={timezone}
               onChange={(e) => setTimezone(e.target.value)}
-              className="w-full px-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white focus-visible:ring-indigo-500"
+              className="w-full px-4 py-2.5 bg-[#080a08] border border-white/15 rounded-lg text-xs text-[#f5f7f2] focus:border-[#d4ff33] focus:outline-none"
             >
               <option value="UTC">UTC (Coordinated Universal Time)</option>
               <option value="America/New_York">America/New_York (UTC-5)</option>
@@ -232,20 +253,21 @@ export const RegisterPage: React.FC = () => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-xl text-sm font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all shadow-md shadow-indigo-600/20 mt-4"
+            className="w-full py-3 rounded-lg text-xs font-bold uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] disabled:opacity-50 transition-colors mt-4"
           >
             {loading ? 'Creating Profile...' : 'Complete Registration'}
           </button>
         </form>
 
-        <div className="mt-6 text-center text-xs text-slate-400">
+        <div className="mt-6 text-center text-xs text-[#9ca396]">
           Already registered?{' '}
-          <Link to="/login" className="text-indigo-400 hover:text-indigo-300 font-semibold">
+          <Link to="/login" className="text-[#d4ff33] hover:underline font-semibold">
             Log in here
           </Link>
         </div>
-      </div>
+      </InteractiveTiltCard>
     </div>
   );
 };
+
 

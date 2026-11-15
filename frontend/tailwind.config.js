@@ -8,31 +8,26 @@ export default {
   theme: {
     extend: {
       colors: {
-        brand: {
-          50: '#eef2ff',
-          100: '#e0e7ff',
-          200: '#c7d2fe',
-          300: '#a5b4fc',
-          400: '#818cf8',
-          500: '#6366f1',
-          600: '#4f46e5',
-          700: '#4338ca',
-          800: '#3730a3',
-          900: '#312e81',
-          950: '#1e1b4b',
+        volt: {
+          DEFAULT: '#d4ff33',
+          400: '#dcff5c',
+          500: '#d4ff33',
+          600: '#b8e619',
         },
-        forge: {
-          dark: '#0a0d14',
-          card: '#111726',
-          border: '#1e293b',
-          muted: '#94a3b8',
-        }
+        obsidian: {
+          DEFAULT: '#080a08',
+          card: '#111411',
+          elevated: '#161a16',
+          border: '#252a24',
+          muted: '#9ca396',
+        },
       },
       fontFamily: {
-        sans: ['Inter', 'system-ui', '-apple-system', 'sans-serif'],
+        display: ['Syne', 'system-ui', 'sans-serif'],
+        sans: ['Plus Jakarta Sans', 'system-ui', '-apple-system', 'sans-serif'],
+        mono: ['JetBrains Mono', 'monospace'],
       },
     },
   },
   plugins: [],
 }
-
