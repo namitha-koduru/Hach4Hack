@@ -7,10 +7,11 @@ import { TeammateSuggestion } from 'shared';
  */
 export const parseTimezoneOffset = (tzString: string): number => {
   if (!tzString) return 0;
-  const normalized = tzString.toUpperCase().trim();
+  const raw = tzString.trim();
+  const normalized = raw.toUpperCase();
 
-  // Handle explicit UTC/GMT offset strings, e.g. "UTC+5:30", "GMT-4", "+05:30"
-  const offsetMatch = normalized.match(/(?:UTC|GMT)?\s*([+-])(\d{1,2})(?::(\d{2}))?/);
+  // 1. Handle explicit UTC/GMT offset strings, e.g. "UTC+5:30", "GMT-4", "+05:30"
+  const offsetMatch = normalized.match(/^(?:UTC|GMT)?\s*([+-])(\d{1,2})(?::(\d{2}))?$/);
   if (offsetMatch) {
     const sign = offsetMatch[1] === '-' ? -1 : 1;
     const hours = parseInt(offsetMatch[2], 10);
@@ -18,7 +19,28 @@ export const parseTimezoneOffset = (tzString: string): number => {
     return sign * (hours + minutes);
   }
 
-  // Handle common IANA names
+  if (normalized === 'UTC' || normalized === 'GMT') return 0;
+
+  // 2. Dynamically resolve any valid IANA timezone using Node's Intl API
+  try {
+    const parts = new Intl.DateTimeFormat('en-US', {
+      timeZone: raw,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(new Date());
+    const tzPart = parts.find((p) => p.type === 'timeZoneName')?.value || '';
+    if (tzPart === 'GMT' || tzPart === 'UTC') return 0;
+    const intlMatch = tzPart.match(/^(?:GMT|UTC)([+-])(\d{1,2})(?::(\d{2}))?$/);
+    if (intlMatch) {
+      const sign = intlMatch[1] === '-' ? -1 : 1;
+      const hours = parseInt(intlMatch[2], 10);
+      const minutes = intlMatch[3] ? parseInt(intlMatch[3], 10) / 60 : 0;
+      return sign * (hours + minutes);
+    }
+  } catch {
+    // Fall back to explicit lookup map if timezone string is non-IANA
+  }
+
+  // 3. Fallback common map
   const ianaMap: Record<string, number> = {
     'AMERICA/NEW_YORK': -5,
     'AMERICA/CHICAGO': -6,
@@ -32,8 +54,6 @@ export const parseTimezoneOffset = (tzString: string): number => {
     'ASIA/SINGAPORE': 8,
     'ASIA/TOKYO': 9,
     'AUSTRALIA/SYDNEY': 10,
-    'UTC': 0,
-    'GMT': 0,
   };
 
   return ianaMap[normalized] ?? 0;

@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { apiClient } from '../services/api';
+import { apiClient, generateIdempotencyKey } from '../services/api';
 import { InviteModal } from '../components/InviteModal';
 import { InteractiveTiltCard } from '../components/InteractiveTiltCard';
 import {
@@ -27,6 +27,7 @@ export const DashboardPage: React.FC = () => {
   const [leaveLoading, setLeaveLoading] = useState(false);
   const [confirmLeave, setConfirmLeave] = useState(false);
   const [leaveError, setLeaveError] = useState<string | null>(null);
+  const leaveKeyRef = useRef<{ teamId: string; key: string } | null>(null);
 
   const activeMembership =
     user?.memberships && user.memberships.length > 0 ? user.memberships[0] : null;
@@ -76,10 +77,19 @@ export const DashboardPage: React.FC = () => {
 
   const handleLeaveTeam = async () => {
     if (!activeMembership?.teamId) return;
+    const teamId = activeMembership.teamId;
+    if (!leaveKeyRef.current || leaveKeyRef.current.teamId !== teamId) {
+      leaveKeyRef.current = { teamId, key: generateIdempotencyKey() };
+    }
+
     setLeaveLoading(true);
     setLeaveError(null);
     try {
-      await apiClient(`/teams/${activeMembership.teamId}/leave`, { method: 'POST' });
+      await apiClient(`/teams/${teamId}/leave`, {
+        method: 'POST',
+        idempotencyKey: leaveKeyRef.current.key,
+      });
+      leaveKeyRef.current = null;
       await refreshUser();
       setActiveTeamDetails(null);
       setConfirmLeave(false);

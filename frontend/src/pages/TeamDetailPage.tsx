@@ -1,8 +1,8 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
-import { apiClient } from '../services/api';
+import { apiClient, generateIdempotencyKey } from '../services/api';
 import { InviteModal } from '../components/InviteModal';
 import { InteractiveTiltCard } from '../components/InteractiveTiltCard';
 import {
@@ -37,6 +37,7 @@ export const TeamDetailPage: React.FC = () => {
     | { type: 'remove'; userId: string; name: string }
     | null
   >(null);
+  const actionKeyRef = useRef<{ signature: string; key: string } | null>(null);
 
   const fetchTeamData = useCallback(async () => {
     if (!teamId) return;
@@ -93,21 +94,37 @@ export const TeamDetailPage: React.FC = () => {
 
   const executeConfirmedAction = async () => {
     if (!teamId || !confirmAction) return;
+
+    const sig =
+      confirmAction.type === 'remove'
+        ? `${confirmAction.type}:${teamId}:${confirmAction.userId}`
+        : `${confirmAction.type}:${teamId}`;
+    if (!actionKeyRef.current || actionKeyRef.current.signature !== sig) {
+      actionKeyRef.current = { signature: sig, key: generateIdempotencyKey() };
+    }
+
     setActionLoading(true);
     setActionError(null);
     try {
       if (confirmAction.type === 'leave') {
-        await apiClient(`/teams/${teamId}/leave`, { method: 'POST' });
+        await apiClient(`/teams/${teamId}/leave`, {
+          method: 'POST',
+          idempotencyKey: actionKeyRef.current.key,
+        });
+        actionKeyRef.current = null;
         await refreshUser();
         navigate('/dashboard');
       } else if (confirmAction.type === 'remove') {
         await apiClient(`/teams/${teamId}/members/${confirmAction.userId}`, {
           method: 'DELETE',
+          idempotencyKey: actionKeyRef.current.key,
         });
+        actionKeyRef.current = null;
         setConfirmAction(null);
         await fetchTeamData();
       } else if (confirmAction.type === 'delete') {
         await apiClient(`/teams/${teamId}`, { method: 'DELETE' });
+        actionKeyRef.current = null;
         await refreshUser();
         navigate('/teams');
       }

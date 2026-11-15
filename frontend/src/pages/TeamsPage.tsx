@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
@@ -47,6 +47,7 @@ export const TeamsPage: React.FC = () => {
     type: 'success' | 'error';
     message: string;
   } | null>(null);
+  const joinReqKeyRef = useRef<{ signature: string; key: string } | null>(null);
 
   // Tab & Announcements State
   const [activeTab, setActiveTab] = useState<'teams' | 'announcements'>('teams');
@@ -192,6 +193,7 @@ export const TeamsPage: React.FC = () => {
       navigate('/login');
       return;
     }
+    joinReqKeyRef.current = null;
     setSelectedTeamId(teamId);
     setRequestMessage('');
     setRequestFeedback(null);
@@ -202,15 +204,22 @@ export const TeamsPage: React.FC = () => {
     e.preventDefault();
     if (!selectedTeamId) return;
 
+    const payload = { message: requestMessage.trim() };
+    const signature = `${selectedTeamId}:${payload.message}`;
+    if (!joinReqKeyRef.current || joinReqKeyRef.current.signature !== signature) {
+      joinReqKeyRef.current = { signature, key: generateIdempotencyKey() };
+    }
+
     setRequestSubmitting(true);
     setRequestFeedback(null);
     try {
       await apiClient(`/teams/${selectedTeamId}/requests`, {
         method: 'POST',
-        idempotencyKey: generateIdempotencyKey(),
-        body: JSON.stringify({ message: requestMessage.trim() }),
+        idempotencyKey: joinReqKeyRef.current.key,
+        body: JSON.stringify(payload),
       });
 
+      joinReqKeyRef.current = null;
       setRequestFeedback({
         type: 'success',
         message: 'Join request sent to the team leader!',

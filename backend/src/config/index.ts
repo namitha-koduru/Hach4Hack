@@ -21,3 +21,8 @@ export const config = {
   },
 };
 
+if (config.env === 'production' && !process.env.JWT_SECRET) {
+  console.warn('[Security] JWT_SECRET is not set in production — configure a strong secret in environment variables.');
+}
+
+

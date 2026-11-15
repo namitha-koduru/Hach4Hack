@@ -3,6 +3,7 @@ import { TeamController } from '../controllers/teamController';
 import { authenticate } from '../middleware/auth';
 import { validate } from '../middleware/validation';
 import { handleIdempotency } from '../middleware/idempotency';
+import { inviteRedeemLimiter } from '../middleware/rateLimiters';
 import { RedeemInviteSchema } from 'shared';
 
 const router = Router();
@@ -10,6 +11,7 @@ const router = Router();
 router.post(
   '/redeem',
   authenticate,
+  inviteRedeemLimiter,
   validate(RedeemInviteSchema),
   handleIdempotency,
   TeamController.redeemInvite

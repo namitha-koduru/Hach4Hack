@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { X, Copy, Check, KeyRound, AlertCircle } from 'lucide-react';
 import { apiClient, generateIdempotencyKey } from '../services/api';
 
@@ -21,6 +21,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const redeemKeyRef = useRef<{ code: string; key: string } | null>(null);
 
   if (!isOpen) return null;
 
@@ -46,15 +47,22 @@ export const InviteModal: React.FC<InviteModalProps> = ({
 
   const handleRedeem = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!code.trim()) return;
+    const normalized = code.trim();
+    if (!normalized) return;
+
+    if (!redeemKeyRef.current || redeemKeyRef.current.code !== normalized) {
+      redeemKeyRef.current = { code: normalized, key: generateIdempotencyKey() };
+    }
+
     setLoading(true);
     setError(null);
     try {
       await apiClient('/invites/redeem', {
         method: 'POST',
-        idempotencyKey: generateIdempotencyKey(),
-        body: JSON.stringify({ code: code.trim() }),
+        idempotencyKey: redeemKeyRef.current.key,
+        body: JSON.stringify({ code: normalized }),
       });
+      redeemKeyRef.current = null;
       setSuccessMsg('Successfully joined the team! Redirecting...');
       setTimeout(() => {
         if (onSuccess) onSuccess();
@@ -180,7 +188,7 @@ export const InviteModal: React.FC<InviteModalProps> = ({
                 <input
                   id="invite-code"
                   type="text"
-                  placeholder="TF-XXXX-XXXX-XXXX"
+                  placeholder="TF-XXXX-XXXX-XXXX-XXXX-..."
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   required

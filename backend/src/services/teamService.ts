@@ -219,43 +219,80 @@ export class TeamService {
         orderBy.createdAt = sortOrder;
       }
 
-      const teams = await prisma.team.findMany({
-        where,
-        include: {
-          hackathon: {
-            select: { id: true, title: true },
-          },
-          members: {
-            include: {
-              user: {
-                select: {
-                  id: true,
-                  name: true,
-                  skills: true,
-                  preferredRoles: true,
-                  timezone: true,
-                },
+      const teamInclude = {
+        hackathon: {
+          select: { id: true, title: true },
+        },
+        members: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                name: true,
+                skills: true,
+                preferredRoles: true,
+                timezone: true,
               },
             },
           },
         },
-        orderBy,
-        skip,
-        take: limit,
-      });
+      } satisfies Prisma.TeamInclude;
 
-      // Optimized count calculation:
-      // If page 1 has fewer records than limit, total is simply teams.length!
-      if (page === 1 && teams.length < limit) {
-        total = teams.length;
-      } else {
-        const whereKey = JSON.stringify(where);
-        const cachedCount = countCache.get(whereKey);
-        if (cachedCount && cachedCount.expiresAt > now) {
-          total = cachedCount.count;
+      let teams: Array<Prisma.TeamGetPayload<{ include: typeof teamInclude }>>;
+      if (hasSeats) {
+        // Select lightweight capacity columns to accurately exclude full unlocked teams
+        const candidates = await prisma.team.findMany({
+          where,
+          select: {
+            id: true,
+            currentMemberCount: true,
+            maxMembers: true,
+          },
+          orderBy,
+        });
+
+        const openIds = candidates
+          .filter((t) => t.currentMemberCount < t.maxMembers)
+          .map((t) => t.id);
+
+        total = openIds.length;
+        const pageIds = openIds.slice(skip, skip + limit);
+
+        if (pageIds.length === 0) {
+          teams = [];
         } else {
-          total = await prisma.team.count({ where });
-          countCache.set(whereKey, { count: total, expiresAt: now + 5000 });
+          const fetched = await prisma.team.findMany({
+            where: { id: { in: pageIds } },
+            include: teamInclude,
+          });
+          // Preserve exact sorted order from pageIds
+          const byId = new Map(fetched.map((t) => [t.id, t]));
+          teams = pageIds
+            .map((id) => byId.get(id))
+            .filter((t): t is Prisma.TeamGetPayload<{ include: typeof teamInclude }> => Boolean(t));
+        }
+      } else {
+        teams = await prisma.team.findMany({
+          where,
+          include: teamInclude,
+          orderBy,
+          skip,
+          take: limit,
+        });
+
+        // Optimized count calculation:
+        // If page 1 has fewer records than limit, total is simply teams.length!
+        if (page === 1 && teams.length < limit) {
+          total = teams.length;
+        } else {
+          const whereKey = JSON.stringify(where);
+          const cachedCount = countCache.get(whereKey);
+          if (cachedCount && cachedCount.expiresAt > now) {
+            total = cachedCount.count;
+          } else {
+            total = await prisma.team.count({ where });
+            countCache.set(whereKey, { count: total, expiresAt: now + 5000 });
+          }
         }
       }
 

@@ -37,26 +37,26 @@ export const initSocket = (server: HttpServer): Server => {
 
     // Join hackathon board room
     socket.on('join:hackathon', (hackathonId: string) => {
-      if (hackathonId) {
+      if (typeof hackathonId === 'string' && hackathonId.length > 0 && hackathonId.length <= 64) {
         socket.join(`hackathon:${hackathonId}`);
       }
     });
 
     socket.on('leave:hackathon', (hackathonId: string) => {
-      if (hackathonId) {
+      if (typeof hackathonId === 'string' && hackathonId.length > 0 && hackathonId.length <= 64) {
         socket.leave(`hackathon:${hackathonId}`);
       }
     });
 
-    // Join team-specific room
+    // Join team-specific public capacity/roster room
     socket.on('join:team', (teamId: string) => {
-      if (teamId) {
+      if (typeof teamId === 'string' && teamId.length > 0 && teamId.length <= 64) {
         socket.join(`team:${teamId}`);
       }
     });
 
     socket.on('leave:team', (teamId: string) => {
-      if (teamId) {
+      if (typeof teamId === 'string' && teamId.length > 0 && teamId.length <= 64) {
         socket.leave(`team:${teamId}`);
       }
     });
@@ -119,10 +119,10 @@ export const socketEvents = {
     io.to(`team:${teamId}`).emit('leader:changed', { newLeaderId });
   },
 
-  emitRequestCreated: (teamId: string, leaderId: string, request: unknown) => {
+  emitRequestCreated: (_teamId: string, leaderId: string, request: unknown) => {
     if (!io) return;
+    // Deliver private applicant request details strictly to the authenticated leader's room
     io.to(`user:${leaderId}`).emit('request:created', request);
-    io.to(`team:${teamId}`).emit('request:created', request);
   },
 
   emitRequestAccepted: (teamId: string, requesterId: string, request: unknown) => {

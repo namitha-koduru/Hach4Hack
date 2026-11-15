@@ -33,9 +33,10 @@ export const verifyToken = (token: string): TokenPayload => {
  * Storage: Only the SHA-256 digest is stored in the database to prevent token leakage.
  */
 export const generateInviteCode = (): { rawCode: string; codeHash: string; codePrefix: string } => {
-  const bytes = crypto.randomBytes(12);
-  const hex = bytes.toString('hex').toUpperCase(); // 24 chars
-  const rawCode = `TF-${hex.slice(0, 4)}-${hex.slice(4, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}`;
+  const bytes = crypto.randomBytes(16); // 128 bits of entropy (32 hex chars)
+  const hex = bytes.toString('hex').toUpperCase();
+  const segments = hex.match(/.{1,4}/g) || [hex];
+  const rawCode = `TF-${segments.join('-')}`;
   const codeHash = hashString(rawCode);
   const codePrefix = rawCode.slice(0, 7) + '...';
 

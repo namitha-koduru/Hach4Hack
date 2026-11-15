@@ -524,5 +524,142 @@ describe('TeamForge End-to-End & Integration Test Suite', () => {
       });
     expect(res2.status).toBe(400);
   });
+
+  // -------------------------------------------------------------
+  // 28-31. HARDENING VERIFICATION TESTS
+  // -------------------------------------------------------------
+  it('28. serializes simultaneous requests with identical Idempotency-Key', async () => {
+    const concurrentUserRes = await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: `concurrent.idem.${Date.now()}@test.com`,
+        password: 'Password123!',
+        name: 'Idem Racer',
+        skills: ['Go', 'PostgreSQL'],
+        preferredRoles: ['Backend Engineer'],
+        timezone: 'America/Chicago',
+      });
+    expect(concurrentUserRes.status).toBe(201);
+    const raceToken = concurrentUserRes.body.data.token;
+
+    const sharedKey = `concurrent-idem-${Date.now()}`;
+    const payload = {
+      hackathonId,
+      name: `Race Safe Idem ${Date.now()}`,
+      requiredSkills: ['Go'],
+    };
+
+    const [r1, r2] = await Promise.all([
+      request(app)
+        .post('/api/teams')
+        .set('Authorization', `Bearer ${raceToken}`)
+        .set('Idempotency-Key', sharedKey)
+        .send(payload),
+      request(app)
+        .post('/api/teams')
+        .set('Authorization', `Bearer ${raceToken}`)
+        .set('Idempotency-Key', sharedKey)
+        .send(payload),
+    ]);
+
+    expect(r1.status).toBe(201);
+    expect(r2.status).toBe(201);
+    expect(r1.body.data.team.id).toBe(r2.body.data.team.id);
+  });
+
+  it('29. excludes full unlocked teams when filtering with ?hasSeats=true', async () => {
+    const fullTeam = await prisma.team.create({
+      data: {
+        hackathonId,
+        name: `Full Unlocked Squad ${Date.now()}`,
+        minMembers: 2,
+        maxMembers: 5,
+        currentMemberCount: 5,
+        requiredSkills: ['Rust'],
+        isLocked: false,
+      },
+    });
+
+    const openRes = await request(app)
+      .get('/api/teams')
+      .query({ hackathonId, hasSeats: 'true', limit: 50 });
+
+    expect(openRes.status).toBe(200);
+    const openIds = openRes.body.data.map((t: any) => t.id);
+    expect(openIds).not.toContain(fullTeam.id);
+
+    const allRes = await request(app)
+      .get('/api/teams')
+      .query({ hackathonId, hasSeats: 'false', limit: 50 });
+
+    expect(allRes.status).toBe(200);
+    const allIds = allRes.body.data.map((t: any) => t.id);
+    expect(allIds).toContain(fullTeam.id);
+  });
+
+  it('30. issues 128-bit cryptographic invitation codes (32 hex chars)', async () => {
+    // leaderToken currently leads 'Idempotency Squad' from test 22
+    const teamsRes = await request(app)
+      .get('/api/teams')
+      .query({ search: 'Idempotency Squad' });
+    const leaderTeamId = teamsRes.body.data[0].id;
+
+    const invRes = await request(app)
+      .post(`/api/teams/${leaderTeamId}/invites`)
+      .set('Authorization', `Bearer ${leaderToken}`)
+      .send({ expiresInHours: 24, maxUses: 2 });
+
+    expect(invRes.status).toBe(201);
+    expect(invRes.body.data.code).toMatch(
+      /^TF-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}-[A-F0-9]{4}$/
+    );
+  });
+
+  it('31. computes accurate timezone overlap for arbitrary IANA zones', async () => {
+    const sydneyEmail = `sydney.dev.${Date.now()}@test.com`;
+    await request(app)
+      .post('/api/auth/register')
+      .send({
+        email: sydneyEmail,
+        password: 'Password123!',
+        name: 'Sydney Dev',
+        skills: ['Python', 'Machine Learning'],
+        preferredRoles: ['ML Engineer'],
+        timezone: 'Australia/Sydney',
+      });
+
+    // Create a UTC-anchored team needing Python & ML
+    const utcTeam = await prisma.team.create({
+      data: {
+        hackathonId,
+        name: `UTC Sugg Squad ${Date.now()}`,
+        minMembers: 2,
+        maxMembers: 5,
+        requiredSkills: ['Python', 'Machine Learning'],
+      },
+    });
+    const adminUser = await prisma.user.findFirst({ where: { role: 'ADMIN' } });
+    if (adminUser) {
+      await prisma.teamMember.create({
+        data: {
+          teamId: utcTeam.id,
+          userId: adminUser.id,
+          hackathonId,
+          role: 'LEADER',
+        },
+      });
+    }
+
+    const res = await request(app)
+      .get(`/api/teams/${utcTeam.id}/suggestions`)
+      .set('Authorization', `Bearer ${adminToken}`);
+
+    expect(res.status).toBe(200);
+    const sydneyRec = res.body.data.find((s: any) => s.timezone === 'Australia/Sydney');
+    expect(sydneyRec).toBeDefined();
+    // Sydney is UTC+10 or UTC+11 (never 0h difference from UTC)
+    expect(sydneyRec.breakdown.timezoneDifferenceHours).toBeGreaterThanOrEqual(10);
+  });
 });
+
 

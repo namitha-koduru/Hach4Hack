@@ -2,12 +2,26 @@
 ### Race-Proof Hackathon Team Formation Platform at Scale
 *PS1 Challenge: High-Concurrency Team Formation without Overfill, Duplicate Memberships, or Data Corruption.*
 
-[![CI/CD Pipeline](https://github.com/teamforge/teamforge/actions/workflows/ci.yml/badge.svg)](https://github.com/teamforge/teamforge/actions/workflows/ci.yml)
+[![CI/CD Pipeline](https://github.com/namitha-koduru/Hach4Hack/actions/workflows/ci.yml/badge.svg)](https://github.com/namitha-koduru/Hach4Hack/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-indigo.svg)](https://opensource.org/licenses/MIT)
 [![PostgreSQL](https://img.shields.io/badge/Database-PostgreSQL%2016-blue.svg)](https://www.postgresql.org/)
 [![Node.js](https://img.shields.io/badge/Node.js-22.x-green.svg)](https://nodejs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.7-blue.svg)](https://www.typescriptlang.org/)
+[![Three.js](https://img.shields.io/badge/3D%20UI-Three.js-black.svg)](https://threejs.org/)
 [![Socket.IO](https://img.shields.io/badge/RealTime-Socket.IO-black.svg)](https://socket.io/)
+
+---
+
+## 📎 Presentation & Demo Links
+
+| Resource | Link |
+| :--- | :--- |
+| **📊 Presentation (PPT / Pitch Deck)** | [Attach PPT Link Here](YOUR_PPT_LINK_HERE) |
+| **🎥 Demo Video** | [Attach Demo Video Link Here](YOUR_DEMO_VIDEO_LINK_HERE) |
+| **🌐 Live Deployment (Vercel)** | [Attach Live App URL Here](YOUR_LIVE_APP_URL_HERE) |
+| **📈 Load Test Report** | [View Benchmark Report (`LOAD_TEST_REPORT.md`)](./LOAD_TEST_REPORT.md) |
+
+> **Note:** Replace `YOUR_PPT_LINK_HERE`, `YOUR_DEMO_VIDEO_LINK_HERE`, and `YOUR_LIVE_APP_URL_HERE` with your Google Slides / Canva / PDF / YouTube / Loom / Vercel URLs before final submission.
 
 ---
 
@@ -37,7 +51,7 @@ TeamForge prevents race conditions with absolute mathematical certainty by combi
 
 | Layer | Technologies | Rationale |
 | :--- | :--- | :--- |
-| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, TanStack Query, React Hook Form, Zod, Lucide React | Blazing-fast SPA with instant state hydration, accessible UI components, and real-time reactive sync. |
+| **Frontend** | React 18, TypeScript, Vite, Three.js, Tailwind CSS, TanStack Query, React Hook Form, Zod, Lucide React | Obsidian & acid-lime editorial UI featuring an interactive 3D WebGL cube (mouse proximity explode, tap-layer twist, 360° orbit), 3D tilt cards, kinetic prize pedestals, and real-time reactive sync. |
 | **Backend** | Node.js 22, Express.js, TypeScript, Prisma ORM, Socket.IO, bcryptjs, jsonwebtoken, Zod | Type-safe end-to-end architecture with fine-grained control over transactional isolation and row-level locks. |
 | **Database** | PostgreSQL 16 | Relational database providing ACID transactions, row-level `FOR UPDATE` locks, and composite unique indexes. |
 | **Testing** | Jest, Supertest, ts-jest, Autocannon | Comprehensive test suite covering 24+ scenarios including a 50-user concurrent race test and performance benchmarking. |
@@ -74,7 +88,7 @@ TeamForge prevents race conditions with absolute mathematical certainty by combi
 
 ## 4. Database Design & Schema
 
-The relational schema is defined in [`backend/prisma/schema.prisma`](file:///c:/Projects/Hack4Hack/Hach4Hack/backend/prisma/schema.prisma):
+The relational schema is defined in [`backend/prisma/schema.prisma`](./backend/prisma/schema.prisma):
 
 - **`User`**: Profiles, hashed credentials, technical skills, preferred roles, timezones, and system roles (`PARTICIPANT`, `ADMIN`).
 - **`Hackathon`**: Tournaments, dates, minimum and maximum team limits.
@@ -152,8 +166,8 @@ docker-compose up --build
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/teamforge/teamforge.git
-   cd teamforge
+   git clone https://github.com/namitha-koduru/Hach4Hack.git
+   cd Hach4Hack
    ```
 
 2. **Install all dependencies:**
@@ -189,7 +203,7 @@ docker-compose up --build
 
 The testing harness includes unit tests, integration tests, and the critical **PS1 Concurrency Race Test**.
 
-### Run All Integration Tests (20+ Scenarios):
+### Run All Integration Tests (30 End-to-End Scenarios):
 ```bash
 npm test
 ```
@@ -222,7 +236,7 @@ Run the Autocannon performance benchmark simulating 100 concurrent virtual conne
 npm --workspace=backend run benchmark
 ```
 
-Target: **p95 latency < 200ms** under 100 concurrent connections.
+Measured SLA target: **p95 latency < 200ms** (measured **64 ms p95** on `GET /api/teams?hasSeats=true&limit=12` at 1,759 req/s with 0 errors). Full metrics are recorded in [`LOAD_TEST_REPORT.md`](./LOAD_TEST_REPORT.md).
 
 ---
 
@@ -250,4 +264,5 @@ The application is container-ready for deployment on modern cloud platforms:
 ---
 
 ## 11. Engineering Design Document
-For full details on transactional isolation levels, row-lock mechanics, and design trade-offs, read [`ARCHITECTURE.md`](file:///c:/Projects/Hack4Hack/Hach4Hack/ARCHITECTURE.md).
+For full details on transactional isolation levels, row-lock mechanics, and design trade-offs, read [`ARCHITECTURE.md`](./ARCHITECTURE.md).
+

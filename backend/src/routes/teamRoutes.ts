@@ -35,8 +35,8 @@ router.delete('/:id', authenticate, requireLeaderOrAdmin, TeamController.deleteT
 
 // Membership Operations
 router.post('/:id/join', authenticate, handleIdempotency, TeamController.directJoin);
-router.post('/:id/leave', authenticate, TeamController.leaveTeam);
-router.delete('/:id/members/:userId', authenticate, TeamController.removeMember);
+router.post('/:id/leave', authenticate, handleIdempotency, TeamController.leaveTeam);
+router.delete('/:id/members/:userId', authenticate, handleIdempotency, TeamController.removeMember);
 
 // Invitations (Team Scoped)
 router.post(

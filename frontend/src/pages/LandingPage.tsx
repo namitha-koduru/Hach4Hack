@@ -445,27 +445,41 @@ export const LandingPage: React.FC = () => {
 
         <div className="relative max-w-4xl mx-auto px-4 sm:px-6 text-center">
           <div className="flex flex-col items-center gap-3 mb-8">
-            <InteractiveTiltCard
-              baseRotateDeg={-3}
-              maxTiltDeg={12}
-              className="px-7 py-3 rounded-xl bg-[#111411] border border-white/20 cursor-pointer"
+            <button
+              type="button"
               onClick={() => setNopeFlipped((v) => !v)}
+              aria-pressed={nopeFlipped}
+              aria-label="Toggle zero-race highlight"
+              className="rounded-xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4ff33] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a08]"
             >
-              <span className="font-display text-2xl sm:text-3xl font-extrabold italic text-[#f5f7f2]">
-                Is that all?
-              </span>
-            </InteractiveTiltCard>
+              <InteractiveTiltCard
+                baseRotateDeg={-3}
+                maxTiltDeg={12}
+                className="px-7 py-3 rounded-xl bg-[#111411] border border-white/20"
+              >
+                <span className="font-display text-2xl sm:text-3xl font-extrabold italic text-[#f5f7f2]">
+                  Is that all?
+                </span>
+              </InteractiveTiltCard>
+            </button>
 
-            <InteractiveTiltCard
-              baseRotateDeg={nopeFlipped ? -4 : 4}
-              maxTiltDeg={14}
-              className="px-7 py-2.5 rounded-xl bg-[#080a08] border border-[#d4ff33]/60 cursor-pointer"
+            <button
+              type="button"
               onClick={() => setNopeFlipped((v) => !v)}
+              aria-pressed={nopeFlipped}
+              aria-label="Toggle NOPE or ZERO RACE badge"
+              className="rounded-xl cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-[#d4ff33] focus-visible:ring-offset-2 focus-visible:ring-offset-[#080a08]"
             >
-              <span className="font-display text-3xl sm:text-4xl font-extrabold uppercase tracking-tight text-[#d4ff33]">
-                {nopeFlipped ? 'ZERO RACE!' : 'NOPE!'}
-              </span>
-            </InteractiveTiltCard>
+              <InteractiveTiltCard
+                baseRotateDeg={nopeFlipped ? -4 : 4}
+                maxTiltDeg={14}
+                className="px-7 py-2.5 rounded-xl bg-[#080a08] border border-[#d4ff33]/60"
+              >
+                <span className="font-display text-3xl sm:text-4xl font-extrabold uppercase tracking-tight text-[#d4ff33]">
+                  {nopeFlipped ? 'ZERO RACE!' : 'NOPE!'}
+                </span>
+              </InteractiveTiltCard>
+            </button>
           </div>
 
           <p className="text-sm text-[#f5f7f2]/90 max-w-md mx-auto mb-8">

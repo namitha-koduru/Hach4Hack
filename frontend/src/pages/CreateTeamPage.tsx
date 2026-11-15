@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { apiClient, generateIdempotencyKey } from '../services/api';
 import { useAuth } from '../context/AuthContext';
@@ -33,6 +33,7 @@ export const CreateTeamPage: React.FC = () => {
   const [generateInvite, setGenerateInvite] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const idempotencyRef = useRef<{ signature: string; key: string } | null>(null);
 
   useEffect(() => {
     apiClient('/hackathons')
@@ -64,21 +65,28 @@ export const CreateTeamPage: React.FC = () => {
       return;
     }
 
+    const payload = {
+      hackathonId: selectedHackathonId,
+      name: name.trim(),
+      description: description.trim(),
+      requiredSkills,
+      generateInviteCode: generateInvite,
+    };
+    const signature = JSON.stringify(payload);
+    if (!idempotencyRef.current || idempotencyRef.current.signature !== signature) {
+      idempotencyRef.current = { signature, key: generateIdempotencyKey() };
+    }
+
     setLoading(true);
     setError(null);
     try {
       const res = await apiClient<{ success: boolean; data: { team: { id: string } } }>('/teams', {
         method: 'POST',
-        idempotencyKey: generateIdempotencyKey(),
-        body: JSON.stringify({
-          hackathonId: selectedHackathonId,
-          name: name.trim(),
-          description: description.trim(),
-          requiredSkills,
-          generateInviteCode: generateInvite,
-        }),
+        idempotencyKey: idempotencyRef.current.key,
+        body: JSON.stringify(payload),
       });
 
+      idempotencyRef.current = null;
       await refreshUser();
       navigate(`/teams/${res.data.team.id}`);
     } catch (err: any) {

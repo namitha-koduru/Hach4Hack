@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { apiClient, generateIdempotencyKey } from '../services/api';
@@ -14,6 +14,7 @@ export const JoinRequestsPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [actionLoadingId, setActionLoadingId] = useState<string | null>(null);
   const [confirmCancelId, setConfirmCancelId] = useState<string | null>(null);
+  const actionKeysRef = useRef<Record<string, string>>({});
 
   const activeMembership =
     user?.memberships && user.memberships.length > 0 ? user.memberships[0] : null;
@@ -58,14 +59,24 @@ export const JoinRequestsPage: React.FC = () => {
     };
   }, [socket, fetchIncoming, refreshUser]);
 
+  const getActionKey = (action: string, id: string) => {
+    const cacheKey = `${action}:${id}`;
+    if (!actionKeysRef.current[cacheKey]) {
+      actionKeysRef.current[cacheKey] = generateIdempotencyKey();
+    }
+    return actionKeysRef.current[cacheKey];
+  };
+
   const handleAccept = async (requestId: string) => {
     setActionLoadingId(requestId);
     setError(null);
+    const idempotencyKey = getActionKey('accept', requestId);
     try {
       await apiClient(`/requests/${requestId}/accept`, {
         method: 'POST',
-        idempotencyKey: generateIdempotencyKey(),
+        idempotencyKey,
       });
+      delete actionKeysRef.current[`accept:${requestId}`];
       await fetchIncoming();
       await refreshUser();
     } catch (err: any) {
@@ -81,8 +92,13 @@ export const JoinRequestsPage: React.FC = () => {
   const handleDecline = async (requestId: string) => {
     setActionLoadingId(requestId);
     setError(null);
+    const idempotencyKey = getActionKey('decline', requestId);
     try {
-      await apiClient(`/requests/${requestId}/decline`, { method: 'POST' });
+      await apiClient(`/requests/${requestId}/decline`, {
+        method: 'POST',
+        idempotencyKey,
+      });
+      delete actionKeysRef.current[`decline:${requestId}`];
       await fetchIncoming();
     } catch (err: any) {
       setError(err.message || 'Failed to decline request');
