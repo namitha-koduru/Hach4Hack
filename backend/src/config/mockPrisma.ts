@@ -482,6 +482,17 @@ function matchCondition(val: any, cond: any): boolean {
   if ('has' in cond) {
     if (!Array.isArray(val) || !val.includes(cond.has)) return false;
   }
+  if ('path' in cond && Array.isArray(cond.path)) {
+    let cursor = val;
+    for (const seg of cond.path) {
+      if (cursor === null || cursor === undefined || typeof cursor !== 'object') {
+        cursor = undefined;
+        break;
+      }
+      cursor = cursor[seg];
+    }
+    if ('equals' in cond && cursor !== cond.equals) return false;
+  }
   return true;
 }
 
@@ -846,6 +857,11 @@ export function createMockPrisma(): PrismaClient {
         rows = applyPagination(rows, args.skip, args.take);
         return rows.map((m) => enrichTeamMember(m, args));
       },
+      count: async (args: any = {}) => {
+        return store.teamMembers.filter((m) =>
+          Object.entries(args.where || {}).every(([k, v]) => matchCondition((m as any)[k], v))
+        ).length;
+      },
       create: async (args: any) => {
         const record: TeamMemberRecord = {
           id: args.data.id || uuid(),
@@ -916,6 +932,11 @@ export function createMockPrisma(): PrismaClient {
         rows = sortRecords(rows, args.orderBy);
         rows = applyPagination(rows, args.skip, args.take);
         return rows.map((r) => enrichJoinRequest(r, args));
+      },
+      count: async (args: any = {}) => {
+        return store.joinRequests.filter((r) =>
+          Object.entries(args.where || {}).every(([k, v]) => matchCondition((r as any)[k], v))
+        ).length;
       },
       create: async (args: any) => {
         const now = new Date();
@@ -994,6 +1015,14 @@ export function createMockPrisma(): PrismaClient {
     },
 
     auditLog: {
+      findFirst: async (args: any = {}) => {
+        let rows = store.auditLogs.filter((l) =>
+          Object.entries(args.where || {}).every(([k, v]) => matchCondition((l as any)[k], v))
+        );
+        rows = sortRecords(rows, args.orderBy);
+        const found = rows[0];
+        return found ? enrichAuditLog(found, args) : null;
+      },
       findMany: async (args: any = {}) => {
         let rows = store.auditLogs.filter((l) =>
           Object.entries(args.where || {}).every(([k, v]) => matchCondition((l as any)[k], v))
@@ -1001,6 +1030,11 @@ export function createMockPrisma(): PrismaClient {
         rows = sortRecords(rows, args.orderBy);
         rows = applyPagination(rows, args.skip, args.take);
         return rows.map((l) => enrichAuditLog(l, args));
+      },
+      count: async (args: any = {}) => {
+        return store.auditLogs.filter((l) =>
+          Object.entries(args.where || {}).every(([k, v]) => matchCondition((l as any)[k], v))
+        ).length;
       },
       create: async (args: any) => {
         const record: AuditLogRecord = {

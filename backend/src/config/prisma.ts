@@ -9,54 +9,64 @@ declare global {
 }
 
 let activeClient: PrismaClient | null = null;
+let pendingInit: Promise<PrismaClient> | null = null;
 
 async function probeAndConnectRealDb(): Promise<PrismaClient> {
   if (activeClient) return activeClient;
 
-  const dbUrl = config.env === 'test' ? config.testDatabaseUrl : config.databaseUrl;
+  const isTestEnv = process.env.NODE_ENV === 'test' || config.env === 'test';
+  const dbUrl = isTestEnv ? (config.testDatabaseUrl || config.databaseUrl) : config.databaseUrl;
   if (!dbUrl) {
     console.warn('[AI Studio] DATABASE_URL not configured — using pre-seeded in-memory database');
     activeClient = createMockPrisma();
     return activeClient;
   }
 
-  // Fast TCP reachability probe before handing traffic to PrismaClient
-  try {
-    const parsed = new URL(dbUrl);
-    const host = parsed.hostname;
-    const port = parseInt(parsed.port || '5432', 10);
+  // In test mode (CI / Jest), connect directly with PrismaClient without a race-prone TCP timer
+  if (!isTestEnv) {
+    try {
+      const parsed = new URL(dbUrl);
+      const host = parsed.hostname === 'localhost' ? '127.0.0.1' : parsed.hostname;
+      const port = parseInt(parsed.port || '5432', 10);
 
-    // Cloud SQL Unix socket paths use query param ?host=/cloudsql/...
-    const socketHost = parsed.searchParams.get('host');
-    const target: net.NetConnectOpts = socketHost
-      ? { path: `${socketHost}/.s.PGSQL.${port}` }
-      : { host, port };
+      // Cloud SQL Unix socket paths use query param ?host=/cloudsql/...
+      const socketHost = parsed.searchParams.get('host');
+      const target: net.NetConnectOpts = socketHost
+        ? { path: `${socketHost}/.s.PGSQL.${port}` }
+        : { host, port };
 
-    const reachable = await new Promise<boolean>((resolve) => {
-      const socket = net.createConnection(target);
-      const timer = setTimeout(() => {
-        socket.destroy();
-        resolve(false);
-      }, 400);
+      const reachable = await new Promise<boolean>((resolve) => {
+        const socket = net.createConnection(target);
+        const timer = setTimeout(() => {
+          socket.destroy();
+          resolve(false);
+        }, 600);
 
-      socket.once('connect', () => {
-        clearTimeout(timer);
-        socket.destroy();
-        resolve(true);
+        socket.once('connect', () => {
+          clearTimeout(timer);
+          socket.destroy();
+          resolve(true);
+        });
+        socket.once('error', () => {
+          clearTimeout(timer);
+          socket.destroy();
+          resolve(false);
+        });
       });
-      socket.once('error', () => {
-        clearTimeout(timer);
-        socket.destroy();
-        resolve(false);
-      });
-    });
 
-    if (!reachable) {
-      console.warn(`[AI Studio] Database at ${host}:${port} unreachable — using pre-seeded in-memory database`);
+      if (!reachable) {
+        console.warn(`[AI Studio] Database at ${host}:${port} unreachable — using pre-seeded in-memory database`);
+        activeClient = createMockPrisma();
+        return activeClient;
+      }
+    } catch {
+      console.warn('[AI Studio] Invalid DATABASE_URL — using pre-seeded in-memory database');
       activeClient = createMockPrisma();
       return activeClient;
     }
+  }
 
+  try {
     const realPrisma = new PrismaClient({
       datasources: { db: { url: dbUrl } },
       log:
@@ -80,7 +90,13 @@ async function probeAndConnectRealDb(): Promise<PrismaClient> {
   }
 }
 
-const readyPromise: Promise<PrismaClient> = probeAndConnectRealDb();
+function getReadyClient(): Promise<PrismaClient> {
+  if (activeClient) return Promise.resolve(activeClient);
+  if (!pendingInit) {
+    pendingInit = probeAndConnectRealDb();
+  }
+  return pendingInit;
+}
 
 function wrapDelegate(modelName: string | symbol) {
   return new Proxy(
@@ -89,9 +105,12 @@ function wrapDelegate(modelName: string | symbol) {
       get(_target, methodName) {
         if (methodName === 'then') return undefined;
         return async (...args: unknown[]) => {
-          const client = await readyPromise;
+          const client = await getReadyClient();
           const delegate = (client as unknown as Record<string | symbol, Record<string | symbol, Function>>)[modelName];
-          const fn = delegate[methodName];
+          const fn = delegate?.[methodName];
+          if (typeof fn !== 'function') {
+            throw new TypeError(`Prisma delegate method ${String(modelName)}.${String(methodName)} is not available`);
+          }
           return fn.apply(delegate, args);
         };
       },
@@ -106,7 +125,7 @@ export const prisma: PrismaClient =
       if (prop === 'then') return undefined;
       if (typeof prop === 'string' && prop.startsWith('$')) {
         return async (...args: unknown[]) => {
-          const client = await readyPromise;
+          const client = await getReadyClient();
           const fn = (client as unknown as Record<string, Function>)[prop];
           return fn.apply(client, args);
         };
