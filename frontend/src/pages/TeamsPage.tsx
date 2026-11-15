@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { apiClient, generateIdempotencyKey } from '../services/api';
 import { TeamCard } from '../components/TeamCard';
-import { TeamSummary } from '../../../shared/src';
+import { TeamSummary } from '../types';
 import {
   Search,
   Filter,

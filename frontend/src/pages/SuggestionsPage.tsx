@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { apiClient } from '../services/api';
-import { TeammateSuggestion } from '../../../shared/src';
+import { TeammateSuggestion } from '../types';
 import {
   Sparkles,
   Clock,

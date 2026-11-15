@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Users, Crown, Calendar, Sparkles, CheckCircle2, Clock, AlertCircle } from 'lucide-react';
-import { TeamSummary } from '../../../shared/src';
+import { TeamSummary } from '../types';
 
 interface TeamCardProps {
   team: TeamSummary;
