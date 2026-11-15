@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { LogOut, User, Plus, Menu, X, Terminal } from 'lucide-react';
+import { LogOut, User, Plus, Menu, X } from 'lucide-react';
 
 export const Navbar: React.FC = () => {
   const { user, logout } = useAuth();
@@ -33,15 +33,22 @@ export const Navbar: React.FC = () => {
     <header className="sticky top-0 z-50 bg-[#080a08]/95 border-b border-white/10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16 gap-8">
-          {/* Zone 1: Brand Wordmark */}
+          {/* Zone 1: Brand Wordmark + Isometric Forge Cube Mark */}
           <Link
             to="/"
             className="flex items-center gap-2.5 text-[#f5f7f2] font-display font-extrabold text-lg tracking-tight whitespace-nowrap shrink-0 group focus-visible:outline-none"
           >
-            <span className="w-8 h-8 rounded-lg bg-[#d4ff33] text-[#080a08] flex items-center justify-center transition-transform duration-300 group-hover:rotate-6">
-              <Terminal className="w-4 h-4 stroke-[2.5]" />
+            <span className="w-8 h-8 rounded-lg bg-[#111411] border border-[#d4ff33]/35 flex items-center justify-center transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:rotate-6 group-hover:scale-105 group-hover:border-[#d4ff33]">
+              <svg viewBox="0 0 32 32" className="w-5 h-5" fill="none" aria-hidden="true">
+                <path d="M16 4L27 10L16 16L5 10L16 4Z" fill="#D4FF33" />
+                <path d="M5 12L15 17.5V28L5 22.5V12Z" fill="#F5F7F2" fillOpacity="0.9" />
+                <path d="M27 12L17 17.5V28L27 22.5V12Z" fill="#181C17" stroke="#D4FF33" strokeWidth="1.5" strokeLinejoin="round" />
+                <circle cx="16" cy="10" r="1.6" fill="#080A08" />
+              </svg>
             </span>
-            <span className="tracking-tight">TEAMFORGE</span>
+            <span className="tracking-tight transition-colors duration-300 group-hover:text-[#d4ff33]">
+              TEAMFORGE
+            </span>
           </Link>
 
           {/* Zone 2: Navigation Links */}
@@ -52,17 +59,17 @@ export const Navbar: React.FC = () => {
                 <Link
                   key={link.name}
                   to={link.href}
-                  className={`relative py-1 text-sm font-medium whitespace-nowrap transition-colors ${
+                  className={`relative py-1 text-sm font-medium whitespace-nowrap transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                     active ? 'text-[#d4ff33]' : 'text-[#9ca396] hover:text-[#f5f7f2]'
                   }`}
                 >
                   {link.name}
-                  {active && (
-                    <span
-                      aria-hidden="true"
-                      className="absolute left-0 right-0 -bottom-0.5 h-[2px] bg-[#d4ff33]"
-                    />
-                  )}
+                  <span
+                    aria-hidden="true"
+                    className={`absolute left-0 right-0 -bottom-0.5 h-[2px] bg-[#d4ff33] origin-left transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                      active ? 'scale-x-100' : 'scale-x-0'
+                    }`}
+                  />
                 </Link>
               );
             })}

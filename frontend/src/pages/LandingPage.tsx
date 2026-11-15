@@ -183,12 +183,12 @@ export const LandingPage: React.FC = () => {
           className="pointer-events-none absolute inset-x-0 top-0 h-80 bg-gradient-to-b from-[#d4ff33]/[0.05] via-transparent to-transparent"
         />
 
-        <div className="relative max-w-6xl mx-auto px-4 sm:px-6 text-center">
-          <p className="font-mono text-xs uppercase tracking-[0.26em] text-[#9ca396] mb-3">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 text-center">
+          <p className="animate-fade-up font-mono text-xs uppercase tracking-[0.26em] text-[#9ca396] mb-3">
             High-Concurrency Hackathon Engine
           </p>
 
-          <h1 className="font-display font-extrabold tracking-tight uppercase leading-[0.94] text-4xl sm:text-6xl lg:text-7xl text-[#f5f7f2]">
+          <h1 className="animate-fade-up font-display font-extrabold tracking-tight uppercase leading-[0.94] text-4xl sm:text-6xl lg:text-7xl text-[#f5f7f2]">
             BIGGEST TEAM BUILDER
             <span className="block mt-2 italic text-[#d4ff33] tracking-tight">
               IS LIVE.
@@ -196,7 +196,7 @@ export const LandingPage: React.FC = () => {
           </h1>
 
           {/* Central 3D Stage Flanked by Architectural Metric Framing */}
-          <div className="mt-6 grid grid-cols-1 lg:grid-cols-12 items-center gap-6">
+          <div className="animate-fade-up-delay-1 mt-6 grid grid-cols-1 lg:grid-cols-12 items-center gap-6">
             {/* Left Architectural Box */}
             <div className="hidden lg:flex lg:col-span-3 justify-end">
               <InteractiveTiltCard
@@ -240,10 +240,10 @@ export const LandingPage: React.FC = () => {
           </div>
 
           {/* Primary Action Row */}
-          <div className="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
+          <div className="animate-fade-up-delay-2 mt-8 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               to={user ? '/teams' : '/register'}
-              className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-lg font-display font-bold text-sm uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] transition-colors w-full sm:w-auto"
+              className="inline-flex items-center justify-center gap-2.5 px-8 py-3.5 rounded-lg font-display font-bold text-sm uppercase tracking-wider bg-[#d4ff33] hover:bg-[#e1ff66] text-[#080a08] transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 w-full sm:w-auto"
             >
               <span>{user ? 'Enter Team Board' : 'Register Now'}</span>
               <ArrowRight className="w-4 h-4 stroke-[2.5]" />
@@ -251,7 +251,7 @@ export const LandingPage: React.FC = () => {
 
             <Link
               to="/teams"
-              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg font-mono text-xs uppercase tracking-widest bg-[#111411] hover:bg-[#161a16] text-[#f5f7f2] border border-white/15 hover:border-[#d4ff33]/50 transition-colors w-full sm:w-auto"
+              className="inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-lg font-mono text-xs uppercase tracking-widest bg-[#111411] hover:bg-[#161a16] text-[#f5f7f2] border border-white/15 hover:border-[#d4ff33]/50 transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 w-full sm:w-auto"
             >
               <span>Looking-For-Teammates</span>
             </Link>
@@ -614,14 +614,18 @@ export const LandingPage: React.FC = () => {
                         {item.q}
                       </span>
                       <ChevronDown
-                        className={`w-4 h-4 text-[#9ca396] shrink-0 mt-0.5 transition-transform duration-200 ${
+                        className={`w-4 h-4 text-[#9ca396] shrink-0 mt-0.5 transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
                           isOpen ? 'rotate-180 text-[#d4ff33]' : ''
                         }`}
                       />
                     </div>
-                    {isOpen && (
-                      <p className="mt-3 text-xs text-[#9ca396] leading-relaxed">{item.a}</p>
-                    )}
+                    <div
+                      className={`grid transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] ${
+                        isOpen ? 'grid-rows-[1fr] opacity-100 mt-3' : 'grid-rows-[0fr] opacity-0 mt-0'
+                      }`}
+                    >
+                      <p className="overflow-hidden text-xs text-[#9ca396] leading-relaxed">{item.a}</p>
+                    </div>
                   </div>
                 </button>
               </div>
@@ -635,8 +639,14 @@ export const LandingPage: React.FC = () => {
         <div className="max-w-6xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 pb-10 border-b border-white/10">
             <div className="space-y-2 text-xs text-[#9ca396]">
-              <div className="font-display font-bold text-sm text-[#f5f7f2] uppercase tracking-wider">
-                TeamForge Platform
+              <div className="flex items-center gap-2 font-display font-bold text-sm text-[#f5f7f2] uppercase tracking-wider">
+                <svg viewBox="0 0 32 32" className="w-5 h-5" fill="none" aria-hidden="true">
+                  <path d="M16 4L27 10L16 16L5 10L16 4Z" fill="#D4FF33" />
+                  <path d="M5 12L15 17.5V28L5 22.5V12Z" fill="#F5F7F2" fillOpacity="0.9" />
+                  <path d="M27 12L17 17.5V28L27 22.5V12Z" fill="#181C17" stroke="#D4FF33" strokeWidth="1.5" strokeLinejoin="round" />
+                  <circle cx="16" cy="10" r="1.6" fill="#080A08" />
+                </svg>
+                <span>TeamForge Platform</span>
               </div>
               <div className="flex flex-wrap gap-5 font-mono uppercase tracking-wider">
                 <Link to="/teams" className="hover:text-[#d4ff33] transition-colors">
