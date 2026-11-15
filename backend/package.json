@@ -14,6 +14,7 @@
     "prisma:push": "prisma db push",
     "prisma:studio": "prisma studio",
     "seed": "tsx prisma/seed.ts",
+    "seed:demo:prod": "tsx prisma/seedProdDemo.ts",
     "test": "jest --runInBand --detectOpenHandles --forceExit",
     "test:concurrency": "jest tests/concurrency.test.ts --runInBand --detectOpenHandles --forceExit",
     "benchmark": "tsx src/benchmark/loadTest.ts"

@@ -96,3 +96,22 @@ export interface TeammateSuggestion {
     timezoneDifferenceHours: number;
   };
 }
+
+export interface AnnouncementSummary {
+  id: string;
+  hackathonId: string;
+  userId: string;
+  title: string;
+  message: string;
+  skills: string[];
+  preferredRoles: string[];
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    timezone: string;
+    bio?: string;
+  };
+}
+

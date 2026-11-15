@@ -469,5 +469,60 @@ describe('TeamForge End-to-End & Integration Test Suite', () => {
       expect(top.breakdown.timezoneScore).toBeDefined();
     }
   });
+
+  // -------------------------------------------------------------
+  // 25, 26, 27. LOOKING-FOR-TEAMMATES ANNOUNCEMENTS
+  // -------------------------------------------------------------
+  it('25. allows participant to broadcast a looking-for-teammates announcement', async () => {
+    const res = await request(app)
+      .post(`/api/hackathons/${hackathonId}/announcements`)
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        title: 'Backend Specialist Looking for Squad',
+        message: 'Experienced with PostgreSQL and TypeScript, looking to join a high-performance team.',
+        skills: ['TypeScript', 'PostgreSQL', 'Docker'],
+        preferredRoles: ['Backend Engineer'],
+      });
+
+    expect(res.status).toBe(201);
+    expect(res.body.success).toBe(true);
+    expect(res.body.data.title).toBe('Backend Specialist Looking for Squad');
+    expect(res.body.data.skills).toContain('PostgreSQL');
+    expect(res.body.data.user.email).toBe('jordan.candidate@test.com');
+  });
+
+  it('26. lists announcements for a hackathon with pagination and user metadata', async () => {
+    const res = await request(app)
+      .get(`/api/hackathons/${hackathonId}/announcements?limit=10`);
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(Array.isArray(res.body.data)).toBe(true);
+    expect(res.body.data.length).toBeGreaterThanOrEqual(1);
+
+    const announcement = res.body.data[0];
+    expect(announcement.hackathonId).toBe(hackathonId);
+    expect(announcement.user).toBeDefined();
+    expect(announcement.user.name).toBeDefined();
+  });
+
+  it('27. rejects announcement without authentication (401) or invalid payload (400)', async () => {
+    // 1. Missing token
+    const res1 = await request(app)
+      .post(`/api/hackathons/${hackathonId}/announcements`)
+      .send({
+        message: 'Looking for a squad!',
+      });
+    expect(res1.status).toBe(401);
+
+    // 2. Empty message (validation failure)
+    const res2 = await request(app)
+      .post(`/api/hackathons/${hackathonId}/announcements`)
+      .set('Authorization', `Bearer ${candidateToken}`)
+      .send({
+        message: 'hi', // Under 5 characters min
+      });
+    expect(res2.status).toBe(400);
+  });
 });
 

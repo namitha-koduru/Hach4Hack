@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import { useSocket } from '../context/SocketContext';
 import { apiClient, generateIdempotencyKey } from '../services/api';
 import { TeamCard } from '../components/TeamCard';
-import { TeamSummary } from '../types';
+import { TeamSummary, AnnouncementSummary } from '../types';
 import {
   Search,
   Filter,
@@ -17,6 +17,8 @@ import {
   AlertCircle,
   X,
   Send,
+  Radio,
+  Megaphone,
 } from 'lucide-react';
 
 export const TeamsPage: React.FC = () => {
@@ -43,6 +45,94 @@ export const TeamsPage: React.FC = () => {
   const [requestMessage, setRequestMessage] = useState('');
   const [requestSubmitting, setRequestSubmitting] = useState(false);
   const [requestFeedback, setRequestFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  // Tab & Announcements State
+  const [activeTab, setActiveTab] = useState<'teams' | 'announcements'>('teams');
+  const [announcements, setAnnouncements] = useState<AnnouncementSummary[]>([]);
+  const [announcementLoading, setAnnouncementLoading] = useState(false);
+  const [announcementMsg, setAnnouncementMsg] = useState('');
+  const [announcementTitle, setAnnouncementTitle] = useState('');
+  const [announcementSubmitting, setAnnouncementSubmitting] = useState(false);
+  const [hackathons, setHackathons] = useState<Array<{ id: string; title: string }>>([]);
+  const [selectedHackathonId, setSelectedHackathonId] = useState<string>('');
+
+  // Fetch Hackathons
+  useEffect(() => {
+    apiClient<{ success: boolean; data: Array<{ id: string; title: string }> }>('/hackathons')
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setHackathons(res.data);
+          setSelectedHackathonId(res.data[0].id);
+        }
+      })
+      .catch(() => {});
+  }, []);
+
+  // Fetch Announcements
+  const fetchAnnouncements = useCallback(async () => {
+    if (!selectedHackathonId) return;
+    setAnnouncementLoading(true);
+    try {
+      const res = await apiClient<{ success: boolean; data: AnnouncementSummary[] }>(
+        `/hackathons/${selectedHackathonId}/announcements?limit=50`
+      );
+      setAnnouncements(res.data);
+    } catch (err) {
+      console.error('Failed to load announcements:', err);
+    } finally {
+      setAnnouncementLoading(false);
+    }
+  }, [selectedHackathonId]);
+
+  useEffect(() => {
+    if (activeTab === 'announcements' && selectedHackathonId) {
+      fetchAnnouncements();
+      joinHackathon(selectedHackathonId);
+    }
+  }, [activeTab, selectedHackathonId, fetchAnnouncements, joinHackathon]);
+
+  // Socket listener for new live announcements
+  useEffect(() => {
+    if (!socket) return;
+    const handleNewAnnouncement = (newAnn: AnnouncementSummary) => {
+      setAnnouncements((prev) => [newAnn, ...prev.filter((a) => a.id !== newAnn.id)]);
+    };
+    socket.on('announcement:created', handleNewAnnouncement);
+    return () => {
+      socket.off('announcement:created', handleNewAnnouncement);
+    };
+  }, [socket]);
+
+  const handlePostAnnouncement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!announcementMsg.trim() || !selectedHackathonId) return;
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+    setAnnouncementSubmitting(true);
+    try {
+      const res = await apiClient<{ success: boolean; data: AnnouncementSummary }>(
+        `/hackathons/${selectedHackathonId}/announcements`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            title: announcementTitle.trim() || 'Looking for Squad',
+            message: announcementMsg.trim(),
+            skills: user?.skills || [],
+            preferredRoles: user?.preferredRoles || [],
+          }),
+        }
+      );
+      setAnnouncements((prev) => [res.data, ...prev.filter((a) => a.id !== res.data.id)]);
+      setAnnouncementMsg('');
+      setAnnouncementTitle('');
+    } catch (err: any) {
+      alert(err.message || 'Failed to post announcement');
+    } finally {
+      setAnnouncementSubmitting(false);
+    }
+  };
 
   const fetchTeams = useCallback(async () => {
     setLoading(true);
@@ -171,132 +261,297 @@ export const TeamsPage: React.FC = () => {
         </button>
       </div>
 
-      {/* Filter and Search Bar */}
-      <div className="p-4 rounded-2xl bg-[#111726] border border-slate-800 shadow-xl space-y-4">
-        <div className="grid sm:grid-cols-3 gap-3">
-          {/* Search by team name */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Search team name..."
-              className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
-            />
-          </div>
+      {/* Tabs: Teams vs Candidate Announcements */}
+      <div className="flex items-center gap-3 border-b border-slate-800 pb-2">
+        <button
+          onClick={() => setActiveTab('teams')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === 'teams'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+              : 'text-slate-400 hover:text-white bg-slate-900 border border-slate-800'
+          }`}
+        >
+          <Users className="w-3.5 h-3.5" />
+          <span>Teams Seeking Members ({totalTeams})</span>
+        </button>
 
-          {/* Filter by skill */}
-          <div className="relative">
-            <Filter className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              value={skill}
-              onChange={(e) => {
-                setSkill(e.target.value);
-                setPage(1);
-              }}
-              placeholder="Filter by skill (e.g. React, Rust)"
-              className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
-            />
-          </div>
-
-          {/* Available Seats Toggle */}
-          <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl">
-            <input
-              id="hasSeatsCheckbox"
-              type="checkbox"
-              checked={hasSeats}
-              onChange={(e) => {
-                setHasSeats(e.target.checked);
-                setPage(1);
-              }}
-              className="w-4 h-4 rounded text-indigo-600 bg-slate-800 border-slate-700 focus:ring-indigo-500"
-            />
-            <label htmlFor="hasSeatsCheckbox" className="text-xs font-medium text-slate-300 cursor-pointer select-none">
-              Open Seats Only (Hide Full Teams)
-            </label>
-          </div>
-        </div>
+        <button
+          onClick={() => setActiveTab('announcements')}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition-all ${
+            activeTab === 'announcements'
+              ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-600/20'
+              : 'text-slate-400 hover:text-white bg-slate-900 border border-slate-800'
+          }`}
+        >
+          <Radio className="w-3.5 h-3.5 text-rose-400 animate-pulse" />
+          <span>Looking-For-Teammates Live Room</span>
+          <span className="px-1.5 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px]">
+            {announcements.length}
+          </span>
+        </button>
       </div>
 
-      {/* Teams Grid */}
-      {error ? (
-        <div className="p-8 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-center text-sm flex flex-col items-center gap-3">
-          <AlertCircle className="w-8 h-8" />
-          <span>{error}</span>
-          <button
-            onClick={() => fetchTeams()}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white"
-          >
-            Retry
-          </button>
-        </div>
-      ) : loading && teams.length === 0 ? (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="h-64 rounded-2xl bg-slate-900/60 border border-slate-800 animate-pulse p-6" />
-          ))}
-        </div>
-      ) : teams.length === 0 ? (
-        <div className="text-center py-16 px-4 bg-[#111726]/40 border border-slate-800 rounded-2xl">
-          <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
-          <h3 className="text-lg font-bold text-white mb-1">No matching teams found</h3>
-          <p className="text-xs text-slate-400 max-w-sm mx-auto mb-6">
-            Try adjusting your search query or unchecking the open seats filter.
-          </p>
-          <button
-            onClick={() => {
-              setSearch('');
-              setSkill('');
-              setHasSeats(false);
-            }}
-            className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200"
-          >
-            Reset Filters
-          </button>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {teams.map((team) => (
-            <TeamCard
-              key={team.id}
-              team={team}
-              isMember={team.id === currentUserTeamId}
-              onRequestJoin={handleOpenJoinRequest}
-            />
-          ))}
-        </div>
-      )}
+      {activeTab === 'teams' ? (
+        <>
+          {/* Filter and Search Bar */}
+          <div className="p-4 rounded-2xl bg-[#111726] border border-slate-800 shadow-xl space-y-4">
+            <div className="grid sm:grid-cols-3 gap-3">
+              {/* Search by team name */}
+              <div className="relative">
+                <Search className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Search team name..."
+                  className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                />
+              </div>
 
-      {/* Pagination Controls */}
-      {totalPages > 1 && (
-        <div className="flex items-center justify-between pt-6 border-t border-slate-800">
-          <span className="text-xs text-slate-400">
-            Page {page} of {totalPages} ({totalTeams} total teams)
-          </span>
+              {/* Filter by skill */}
+              <div className="relative">
+                <Filter className="w-4 h-4 text-slate-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+                <input
+                  type="text"
+                  value={skill}
+                  onChange={(e) => {
+                    setSkill(e.target.value);
+                    setPage(1);
+                  }}
+                  placeholder="Filter by skill (e.g. React, Rust)"
+                  className="w-full pl-9 pr-4 py-2 bg-slate-900 border border-slate-700/80 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                />
+              </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setPage((p) => Math.max(1, p - 1))}
-              disabled={page <= 1}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition-colors"
-            >
-              <ChevronLeft className="w-4 h-4" />
-              Previous
-            </button>
-            <button
-              onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-              disabled={page >= totalPages}
-              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition-colors"
-            >
-              Next
-              <ChevronRight className="w-4 h-4" />
-            </button>
+              {/* Available Seats Toggle */}
+              <div className="flex items-center gap-2 px-3 py-2 bg-slate-900 border border-slate-700/80 rounded-xl">
+                <input
+                  id="hasSeatsCheckbox"
+                  type="checkbox"
+                  checked={hasSeats}
+                  onChange={(e) => {
+                    setHasSeats(e.target.checked);
+                    setPage(1);
+                  }}
+                  className="w-4 h-4 rounded text-indigo-600 bg-slate-800 border-slate-700 focus:ring-indigo-500"
+                />
+                <label htmlFor="hasSeatsCheckbox" className="text-xs font-medium text-slate-300 cursor-pointer select-none">
+                  Open Seats Only (Hide Full Teams)
+                </label>
+              </div>
+            </div>
           </div>
+
+          {/* Teams Grid */}
+          {error ? (
+            <div className="p-8 rounded-2xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-center text-sm flex flex-col items-center gap-3">
+              <AlertCircle className="w-8 h-8" />
+              <span>{error}</span>
+              <button
+                onClick={() => fetchTeams()}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-rose-600 text-white"
+              >
+                Retry
+              </button>
+            </div>
+          ) : loading && teams.length === 0 ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="h-64 rounded-2xl bg-slate-900/60 border border-slate-800 animate-pulse p-6" />
+              ))}
+            </div>
+          ) : teams.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-[#111726]/40 border border-slate-800 rounded-2xl">
+              <Users className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <h3 className="text-lg font-bold text-white mb-1">No matching teams found</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto mb-6">
+                Try adjusting your search query or unchecking the open seats filter.
+              </p>
+              <button
+                onClick={() => {
+                  setSearch('');
+                  setSkill('');
+                  setHasSeats(false);
+                }}
+                className="px-4 py-2 rounded-xl text-xs font-semibold bg-slate-800 text-slate-200"
+              >
+                Reset Filters
+              </button>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {teams.map((team) => (
+                <TeamCard
+                  key={team.id}
+                  team={team}
+                  isMember={team.id === currentUserTeamId}
+                  onRequestJoin={handleOpenJoinRequest}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-between pt-6 border-t border-slate-800">
+              <span className="text-xs text-slate-400">
+                Page {page} of {totalPages} ({totalTeams} total teams)
+              </span>
+
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPage((p) => Math.max(1, p - 1))}
+                  disabled={page <= 1}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition-colors"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                  Previous
+                </button>
+                <button
+                  onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+                  disabled={page >= totalPages}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 disabled:opacity-40 transition-colors"
+                >
+                  Next
+                  <ChevronRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
+      ) : (
+        /* Announcements Feed */
+        <div className="space-y-6">
+          {/* Top Control Bar: Hackathon Switcher + Post Announcement Box */}
+          <div className="p-6 rounded-2xl bg-[#111726] border border-slate-800 shadow-xl space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-base font-bold text-white flex items-center gap-2">
+                  <Megaphone className="w-4 h-4 text-indigo-400" />
+                  <span>Broadcast Looking-For-Team Signal</span>
+                </h3>
+                <p className="text-xs text-slate-400 mt-0.5">
+                  Announce your skills and availability. Squad leaders discover and recruit directly from this feed.
+                </p>
+              </div>
+
+              {hackathons.length > 1 && (
+                <div className="flex items-center gap-2">
+                  <label className="text-xs text-slate-400">Hackathon:</label>
+                  <select
+                    value={selectedHackathonId}
+                    onChange={(e) => setSelectedHackathonId(e.target.value)}
+                    className="px-3 py-1.5 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white"
+                  >
+                    {hackathons.map((h) => (
+                      <option key={h.id} value={h.id}>
+                        {h.title}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              )}
+            </div>
+
+            <form onSubmit={handlePostAnnouncement} className="space-y-3 pt-2">
+              <div className="grid sm:grid-cols-3 gap-2">
+                <input
+                  type="text"
+                  value={announcementTitle}
+                  onChange={(e) => setAnnouncementTitle(e.target.value)}
+                  placeholder="Headline (e.g. Senior Backend / Rust dev looking for squad)"
+                  className="sm:col-span-1 px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                />
+                <input
+                  type="text"
+                  required
+                  value={announcementMsg}
+                  onChange={(e) => setAnnouncementMsg(e.target.value)}
+                  placeholder="Tell leaders what you want to build and your availability..."
+                  className="sm:col-span-2 px-4 py-2 bg-slate-900 border border-slate-700 rounded-xl text-xs text-white placeholder-slate-500 focus-visible:ring-indigo-500"
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="text-[11px] text-slate-400 flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping" />
+                  <span>Real-time channel: new posts appear instantly via WebSockets</span>
+                </div>
+                <button
+                  type="submit"
+                  disabled={announcementSubmitting || !announcementMsg.trim()}
+                  className="px-5 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white disabled:opacity-50 transition-all flex items-center gap-1.5"
+                >
+                  <Send className="w-3.5 h-3.5" />
+                  <span>{announcementSubmitting ? 'Broadcasting...' : 'Broadcast Announcement'}</span>
+                </button>
+              </div>
+            </form>
+          </div>
+
+          {/* Announcements List */}
+          {announcementLoading && announcements.length === 0 ? (
+            <div className="grid md:grid-cols-2 gap-4">
+              {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-32 rounded-2xl bg-slate-900/60 border border-slate-800 animate-pulse p-6" />
+              ))}
+            </div>
+          ) : announcements.length === 0 ? (
+            <div className="text-center py-16 px-4 bg-[#111726]/40 border border-slate-800 rounded-2xl">
+              <Megaphone className="w-12 h-12 text-slate-600 mx-auto mb-3" />
+              <h3 className="text-lg font-bold text-white mb-1">No announcements yet</h3>
+              <p className="text-xs text-slate-400 max-w-sm mx-auto mb-4">
+                Be the first to announce that you are looking for teammates in this hackathon!
+              </p>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-4">
+              {announcements.map((ann) => (
+                <div
+                  key={ann.id}
+                  className="p-5 rounded-2xl bg-[#111726] border border-slate-800 hover:border-indigo-500/50 transition-all flex flex-col justify-between space-y-4"
+                >
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-8 h-8 rounded-full bg-indigo-600/30 border border-indigo-500/40 flex items-center justify-center font-bold text-indigo-300 text-xs">
+                          {ann.user?.name ? ann.user.name[0].toUpperCase() : 'U'}
+                        </div>
+                        <div>
+                          <div className="text-xs font-semibold text-white">{ann.user?.name || 'Anonymous Hacker'}</div>
+                          <div className="text-[10px] text-slate-400">{ann.user?.timezone || 'UTC'}</div>
+                        </div>
+                      </div>
+                      <span className="text-[10px] text-slate-500">
+                        {new Date(ann.createdAt).toLocaleDateString()}
+                      </span>
+                    </div>
+
+                    {ann.title && (
+                      <h4 className="text-xs font-bold text-indigo-300">{ann.title}</h4>
+                    )}
+                    <p className="text-xs text-slate-300 leading-relaxed">{ann.message}</p>
+                  </div>
+
+                  {ann.skills && ann.skills.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5 pt-2 border-t border-slate-800/80">
+                      {ann.skills.map((s, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-700 text-[10px] text-slate-300"
+                        >
+                          {s}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

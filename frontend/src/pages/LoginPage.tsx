@@ -86,40 +86,32 @@ export const LoginPage: React.FC = () => {
         <div className="mt-8 pt-6 border-t border-slate-800/80">
           <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider mb-3 text-center flex items-center justify-center gap-1.5">
             <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-            <span>Evaluator 1-Click Demo Logins</span>
+            <span>Demo Evaluator Accounts (Readily Seeded)</span>
           </div>
-          <div className="grid grid-cols-2 gap-2 text-xs">
+          <div className="grid grid-cols-3 gap-2 text-xs">
             <button
               type="button"
               onClick={() => fillDemo('leader@teamforge.dev')}
-              className="py-2 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-left transition-colors flex items-center gap-1.5"
+              className="py-2 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-center transition-colors flex flex-col items-center gap-1"
             >
-              <UserCheck className="w-3.5 h-3.5 text-amber-400 shrink-0" />
-              <span className="truncate">Team Leader</span>
+              <UserCheck className="w-4 h-4 text-amber-400" />
+              <span className="truncate font-medium">Team Leader</span>
             </button>
             <button
               type="button"
               onClick={() => fillDemo('participant@teamforge.dev')}
-              className="py-2 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-left transition-colors flex items-center gap-1.5"
+              className="py-2 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-center transition-colors flex flex-col items-center gap-1"
             >
-              <UserCheck className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-              <span className="truncate">Participant</span>
+              <UserCheck className="w-4 h-4 text-indigo-400" />
+              <span className="truncate font-medium">Squad Member</span>
             </button>
             <button
               type="button"
               onClick={() => fillDemo('candidate@teamforge.dev')}
-              className="py-2 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-left transition-colors flex items-center gap-1.5"
+              className="py-2 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-center transition-colors flex flex-col items-center gap-1"
             >
-              <UserCheck className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-              <span className="truncate">Applicant</span>
-            </button>
-            <button
-              type="button"
-              onClick={() => fillDemo('admin@teamforge.dev')}
-              className="py-2 px-2.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-left transition-colors flex items-center gap-1.5"
-            >
-              <UserCheck className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-              <span className="truncate">Admin</span>
+              <UserCheck className="w-4 h-4 text-cyan-400" />
+              <span className="truncate font-medium">Applicant</span>
             </button>
           </div>
         </div>

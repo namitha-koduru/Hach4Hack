@@ -101,6 +101,19 @@ export const TeamFilterQuerySchema = z.object({
   sortOrder: z.enum(['asc', 'desc']).default('desc'),
 });
 
+export const CreateAnnouncementSchema = z.object({
+  title: z.string().max(100, 'Title cannot exceed 100 characters').optional().default(''),
+  message: z.string().min(5, 'Announcement must be at least 5 characters').max(500, 'Announcement cannot exceed 500 characters'),
+  skills: z.array(z.string().min(1).max(50)).max(10, 'Cannot specify more than 10 skills').default([]),
+  preferredRoles: z.array(z.string().min(1).max(50)).max(5, 'Cannot specify more than 5 preferred roles').default([]),
+});
+
+export const AnnouncementFilterQuerySchema = z.object({
+  page: z.preprocess((val) => (val ? parseInt(val as string, 10) : 1), z.number().int().min(1).default(1)),
+  limit: z.preprocess((val) => (val ? parseInt(val as string, 10) : 20), z.number().int().min(1).max(100).default(20)),
+  skill: z.string().optional(),
+});
+
 // ==========================================
 // TYPE EXPORTS
 // ==========================================
@@ -114,6 +127,26 @@ export type CreateJoinRequestInput = z.infer<typeof CreateJoinRequestSchema>;
 export type CreateInviteInput = z.infer<typeof CreateInviteSchema>;
 export type RedeemInviteInput = z.infer<typeof RedeemInviteSchema>;
 export type TeamFilterQuery = z.infer<typeof TeamFilterQuerySchema>;
+export type CreateAnnouncementInput = z.infer<typeof CreateAnnouncementSchema>;
+export type AnnouncementFilterQuery = z.infer<typeof AnnouncementFilterQuerySchema>;
+
+export interface AnnouncementSummary {
+  id: string;
+  hackathonId: string;
+  userId: string;
+  title: string;
+  message: string;
+  skills: string[];
+  preferredRoles: string[];
+  createdAt: string;
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    timezone: string;
+    bio?: string;
+  };
+}
 
 export interface UserSummary {
   id: string;

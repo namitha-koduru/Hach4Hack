@@ -57,6 +57,7 @@ model User {
   createdInvites    InvitationCode[]
   auditLogs         AuditLog[]       @relation("ActorAuditLogs")
   targetedAuditLogs AuditLog[]       @relation("TargetUserAuditLogs")
+  announcements     Announcement[]
 
   @@index([email])
   @@index([role])
@@ -78,6 +79,7 @@ model Hackathon {
   teams       Team[]
   members     TeamMember[]
   auditLogs   AuditLog[]
+  announcements Announcement[]
 
   @@index([isActive])
   @@index([slug])
@@ -205,4 +207,22 @@ model IdempotencyRecord {
   @@index([key])
   @@index([expiresAt])
 }
+
+model Announcement {
+  id             String   @id @default(uuid())
+  hackathonId    String
+  userId         String
+  title          String   @default("")
+  message        String
+  skills         String[] @default([])
+  preferredRoles String[] @default([])
+  createdAt      DateTime @default(now())
+
+  hackathon Hackathon @relation(fields: [hackathonId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([hackathonId, createdAt(sort: Desc)])
+  @@index([userId])
+}
+
 

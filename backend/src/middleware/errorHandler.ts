@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { Prisma } from '@prisma/client';
+import { ZodError } from 'zod';
 import { AppError } from '../utils/errors';
 import { config } from '../config';
 
@@ -9,7 +10,20 @@ export const errorHandler = (
   res: Response,
   _next: NextFunction
 ): void => {
-  // 1. Domain App Errors
+  // 1. Zod Validation Errors
+  if (err instanceof ZodError || err.name === 'ZodError') {
+    res.status(400).json({
+      success: false,
+      error: {
+        code: 'VALIDATION_ERROR',
+        message: 'Validation failed',
+        details: (err as any).issues || (err as any).errors,
+      },
+    });
+    return;
+  }
+
+  // 2. Domain App Errors
   if (err instanceof AppError) {
     res.status(err.statusCode).json({
       success: false,

@@ -136,5 +136,10 @@ export const socketEvents = {
     io.to(`user:${requesterId}`).emit('request:declined', request);
     io.to(`team:${teamId}`).emit('request:declined', request);
   },
+
+  emitAnnouncementCreated: (hackathonId: string, announcement: unknown) => {
+    if (!io) return;
+    io.to(`hackathon:${hackathonId}`).emit('announcement:created', announcement);
+  },
 };
 
