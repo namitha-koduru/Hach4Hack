@@ -28,6 +28,21 @@ interface RawLockedTeam {
   isLocked: boolean;
 }
 
+interface TeamListCacheEntry {
+  data: TeamSummary[];
+  total: number;
+  expiresAt: number;
+}
+
+// In-memory caching for high-concurrency read-heavy discovery board
+const listTeamsCache = new Map<string, TeamListCacheEntry>();
+const countCache = new Map<string, { count: number; expiresAt: number }>();
+
+export const invalidateTeamCache = () => {
+  listTeamsCache.clear();
+  countCache.clear();
+};
+
 export class TeamService {
   /**
    * Create a new team atomically within a transaction.
@@ -140,6 +155,7 @@ export class TeamService {
 
     // 5. Post-Commit Real-Time Broadcast
     socketEvents.emitTeamCreated(input.hackathonId, team);
+    invalidateTeamCache();
 
     return {
       team,
@@ -149,52 +165,61 @@ export class TeamService {
 
   /**
    * Discover and filter teams with pagination.
-   * Optimized with covering indexes.
+   * Optimized with covering indexes, intelligent count caching, and read-heavy board caching.
    */
   static async listTeams(query: TeamFilterQuery, currentUserId?: string) {
     const { hackathonId, search, skill, hasSeats, page, limit, sortBy, sortOrder } = query;
     const skip = (page - 1) * limit;
 
-    const where: Prisma.TeamWhereInput = {};
+    const cacheKey = `${hackathonId || ''}:${search || ''}:${skill || ''}:${hasSeats ? '1' : '0'}:${page}:${limit}:${sortBy}:${sortOrder}`;
+    const now = Date.now();
+    const cached = listTeamsCache.get(cacheKey);
 
-    if (hackathonId) {
-      where.hackathonId = hackathonId;
-    }
+    let total: number;
+    let baseTeams: TeamSummary[];
 
-    if (search && search.trim()) {
-      where.name = {
-        contains: search.trim(),
-        mode: 'insensitive',
-      };
-    }
-
-    if (skill && skill.trim()) {
-      where.requiredSkills = {
-        has: skill.trim(),
-      };
-    }
-
-    if (hasSeats) {
-      // Teams where currentMemberCount < maxMembers
-      where.AND = [
-        ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
-        {
-          isLocked: false,
-        },
-      ];
-    }
-
-    // Build order by
-    const orderBy: Prisma.TeamOrderByWithRelationInput = {};
-    if (sortBy === 'name') {
-      orderBy.name = sortOrder;
+    if (cached && cached.expiresAt > now) {
+      total = cached.total;
+      baseTeams = cached.data;
     } else {
-      orderBy.createdAt = sortOrder;
-    }
+      const where: Prisma.TeamWhereInput = {};
 
-    const [total, teams] = await Promise.all([
-      prisma.team.count({ where }),
-      prisma.team.findMany({
+      if (hackathonId) {
+        where.hackathonId = hackathonId;
+      }
+
+      if (search && search.trim()) {
+        where.name = {
+          contains: search.trim(),
+          mode: 'insensitive',
+        };
+      }
+
+      if (skill && skill.trim()) {
+        where.requiredSkills = {
+          has: skill.trim(),
+        };
+      }
+
+      if (hasSeats) {
+        // Teams where currentMemberCount < maxMembers
+        where.AND = [
+          ...(Array.isArray(where.AND) ? where.AND : where.AND ? [where.AND] : []),
+          {
+            isLocked: false,
+          },
+        ];
+      }
+
+      // Build order by
+      const orderBy: Prisma.TeamOrderByWithRelationInput = {};
+      if (sortBy === 'name') {
+        orderBy.name = sortOrder;
+      } else {
+        orderBy.createdAt = sortOrder;
+      }
+
+      const teams = await prisma.team.findMany({
         where,
         include: {
           hackathon: {
@@ -217,53 +242,80 @@ export class TeamService {
         orderBy,
         skip,
         take: limit,
-      }),
-    ]);
+      });
 
-    // Check user's join request statuses for these teams
-    let userRequests: Record<string, string> = {};
-    if (currentUserId && teams.length > 0) {
+      // Optimized count calculation:
+      // If page 1 has fewer records than limit, total is simply teams.length!
+      if (page === 1 && teams.length < limit) {
+        total = teams.length;
+      } else {
+        const whereKey = JSON.stringify(where);
+        const cachedCount = countCache.get(whereKey);
+        if (cachedCount && cachedCount.expiresAt > now) {
+          total = cachedCount.count;
+        } else {
+          total = await prisma.team.count({ where });
+          countCache.set(whereKey, { count: total, expiresAt: now + 5000 });
+        }
+      }
+
+      baseTeams = teams.map((t) => {
+        const leaderMember = t.members.find((m) => m.role === 'LEADER');
+        return {
+          id: t.id,
+          hackathonId: t.hackathonId,
+          name: t.name,
+          description: t.description,
+          minMembers: t.minMembers,
+          maxMembers: t.maxMembers,
+          currentMemberCount: t.currentMemberCount,
+          availableSeats: Math.max(0, t.maxMembers - t.currentMemberCount),
+          requiredSkills: t.requiredSkills,
+          isLocked: t.isLocked,
+          createdAt: t.createdAt.toISOString(),
+          updatedAt: t.updatedAt.toISOString(),
+          hackathon: t.hackathon,
+          leader: leaderMember ? { id: leaderMember.user.id, name: leaderMember.user.name } : undefined,
+          members: t.members.map((m) => ({
+            id: m.id,
+            userId: m.userId,
+            teamId: m.teamId,
+            role: m.role as any,
+            joinedAt: m.joinedAt.toISOString(),
+            user: m.user,
+          })),
+          userRequestStatus: null,
+        };
+      });
+
+      // Cache unauthenticated base board for 3 seconds
+      listTeamsCache.set(cacheKey, {
+        data: baseTeams,
+        total,
+        expiresAt: now + 3000,
+      });
+    }
+
+    // Attach user request status if authenticated
+    let formattedTeams = baseTeams;
+    if (currentUserId && baseTeams.length > 0) {
       const requests = await prisma.joinRequest.findMany({
         where: {
           userId: currentUserId,
-          teamId: { in: teams.map((t) => t.id) },
+          teamId: { in: baseTeams.map((t) => t.id) },
         },
         select: { teamId: true, status: true },
       });
-      userRequests = requests.reduce((acc, r) => {
+      const userRequests = requests.reduce((acc, r) => {
         acc[r.teamId] = r.status;
         return acc;
       }, {} as Record<string, string>);
-    }
 
-    const formattedTeams: TeamSummary[] = teams.map((t) => {
-      const leaderMember = t.members.find((m) => m.role === 'LEADER');
-      return {
-        id: t.id,
-        hackathonId: t.hackathonId,
-        name: t.name,
-        description: t.description,
-        minMembers: t.minMembers,
-        maxMembers: t.maxMembers,
-        currentMemberCount: t.currentMemberCount,
-        availableSeats: Math.max(0, t.maxMembers - t.currentMemberCount),
-        requiredSkills: t.requiredSkills,
-        isLocked: t.isLocked,
-        createdAt: t.createdAt.toISOString(),
-        updatedAt: t.updatedAt.toISOString(),
-        hackathon: t.hackathon,
-        leader: leaderMember ? { id: leaderMember.user.id, name: leaderMember.user.name } : undefined,
-        members: t.members.map((m) => ({
-          id: m.id,
-          userId: m.userId,
-          teamId: m.teamId,
-          role: m.role as any,
-          joinedAt: m.joinedAt.toISOString(),
-          user: m.user,
-        })),
+      formattedTeams = baseTeams.map((t) => ({
+        ...t,
         userRequestStatus: (userRequests[t.id] as any) || null,
-      };
-    });
+      }));
+    }
 
     return {
       data: formattedTeams,
@@ -340,6 +392,7 @@ export class TeamService {
     });
 
     socketEvents.emitTeamUpdated(team.hackathonId, team.id, team);
+    invalidateTeamCache();
     return team;
   }
 
@@ -465,6 +518,7 @@ export class TeamService {
     // Post-commit broadcast
     socketEvents.emitMemberJoined(result.updatedTeam.hackathonId, teamId, result.newMember);
     socketEvents.emitTeamUpdated(result.updatedTeam.hackathonId, teamId, result.updatedTeam);
+    invalidateTeamCache();
 
     return result;
   }
@@ -555,6 +609,7 @@ export class TeamService {
 
     socketEvents.emitMemberJoined(result.updatedTeam.hackathonId, teamId, result.member);
     socketEvents.emitTeamUpdated(result.updatedTeam.hackathonId, teamId, result.updatedTeam);
+    invalidateTeamCache();
 
     return result;
   }
@@ -763,6 +818,7 @@ export class TeamService {
     socketEvents.emitRequestAccepted(teamId, request.userId, result.updatedRequest);
     socketEvents.emitMemberJoined(result.updatedTeam.hackathonId, teamId, result.newMember);
     socketEvents.emitTeamUpdated(result.updatedTeam.hackathonId, teamId, result.updatedTeam);
+    invalidateTeamCache();
 
     return result;
   }
@@ -1004,6 +1060,7 @@ export class TeamService {
     );
 
     // Broadcast post-commit
+    invalidateTeamCache();
     if (result.action === 'TEAM_DELETED') {
       socketEvents.emitTeamDeleted(result.hackathonId, result.teamId);
     } else {
@@ -1091,6 +1148,7 @@ export class TeamService {
 
     socketEvents.emitMemberRemoved(result.hackathonId, teamId, targetUserId);
     socketEvents.emitTeamUpdated(result.hackathonId, teamId, result.updatedTeam);
+    invalidateTeamCache();
 
     return result;
   }
@@ -1138,6 +1196,7 @@ export class TeamService {
     });
 
     socketEvents.emitTeamDeleted(team.hackathonId, teamId);
+    invalidateTeamCache();
     return { success: true };
   }
 

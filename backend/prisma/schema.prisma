@@ -105,7 +105,8 @@ model Team {
   @@unique([hackathonId, name])
   @@index([hackathonId, currentMemberCount])
   @@index([hackathonId, createdAt])
-  @@index([isLocked])
+  @@index([isLocked, createdAt(sort: Desc)])
+  @@index([requiredSkills], type: Gin)
 }
 
 model TeamMember {

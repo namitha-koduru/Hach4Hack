@@ -34,14 +34,23 @@ export const createApp = () => {
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
   // 4. Logging
-  if (config.env !== 'test') {
+  const isSilentEnv =
+    process.env.NODE_ENV === 'test' ||
+    process.env.NODE_ENV === 'benchmark' ||
+    config.env === 'test' ||
+    config.env === 'benchmark';
+  if (!isSilentEnv) {
     app.use(morgan(config.env === 'production' ? 'combined' : 'dev'));
   }
 
   // 5. Rate Limiting
+  const maxRequests = process.env.RATE_LIMIT_MAX
+    ? parseInt(process.env.RATE_LIMIT_MAX, 10)
+    : config.rateLimit.max;
+
   const limiter = rateLimit({
     windowMs: config.rateLimit.windowMs,
-    max: config.rateLimit.max,
+    max: maxRequests,
     standardHeaders: true,
     legacyHeaders: false,
     message: {

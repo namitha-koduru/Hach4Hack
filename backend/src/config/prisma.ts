@@ -14,7 +14,15 @@ export const prisma =
         url: config.env === 'test' ? config.testDatabaseUrl : config.databaseUrl,
       },
     },
-    log: config.env === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    log:
+      process.env.NODE_ENV === 'benchmark' ||
+      process.env.NODE_ENV === 'production' ||
+      process.env.NODE_ENV === 'test' ||
+      config.env === 'benchmark' ||
+      config.env === 'production' ||
+      config.env === 'test'
+        ? ['error']
+        : ['query', 'error', 'warn'],
   });
 
 if (config.env !== 'production') {

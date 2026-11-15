@@ -1,9 +1,13 @@
+process.env.NODE_ENV = 'benchmark';
+process.env.RATE_LIMIT_MAX = '100000';
+
 import autocannon from 'autocannon';
 import http from 'http';
-import { createApp } from '../app';
-import { config } from '../config';
 
 async function runBenchmarks() {
+  const { createApp } = await import('../app');
+  const { config } = await import('../config');
+
   console.log('====================================================');
   console.log('🔥 TeamForge PS1 Load & Performance Benchmark Suite');
   console.log('====================================================');
