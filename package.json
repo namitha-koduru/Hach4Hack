@@ -11,7 +11,7 @@
   "scripts": {
     "dev:backend": "npm --workspace=backend run dev",
     "dev:frontend": "npm --workspace=frontend run dev",
-    "dev": "npm run build:shared && npm run build:frontend && npm --workspace=backend run dev",
+    "dev": "([ -f shared/dist/index.js ] || npm run build:shared) && ([ -f frontend/dist/index.html ] || npm run build:frontend) && npm --workspace=backend run dev",
     "build:shared": "npm --workspace=shared run build",
     "build:backend": "npm --workspace=backend run build",
     "build:frontend": "npm --workspace=frontend run build",

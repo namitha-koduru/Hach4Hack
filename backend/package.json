@@ -5,7 +5,7 @@
   "description": "TeamForge Backend Service - High Concurrency Team Formation Engine",
   "main": "dist/index.js",
   "scripts": {
-    "dev": "npx prisma generate && tsx src/index.ts",
+    "dev": "tsx src/index.ts",
     "build": "npx prisma generate && tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
