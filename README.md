@@ -16,10 +16,9 @@
 
 | Resource | Link |
 | :--- | :--- |
-| **📊 Presentation (PPT / Pitch Deck)** | [Attach PPT Link Here](YOUR_PPT_LINK_HERE) |
-| **🎥 Demo Video** | [Attach Demo Video Link Here](YOUR_DEMO_VIDEO_LINK_HERE) |
-| **🌐 Live Deployment (Vercel)** | [Attach Live App URL Here](YOUR_LIVE_APP_URL_HERE) |
-| **📈 Load Test Report** | [View Benchmark Report (`LOAD_TEST_REPORT.md`)](./LOAD_TEST_REPORT.md) |
+| **📊 Presentation (PPT / Pitch Deck)** | [Attach PPT Link Here]([YOUR_PPT_LINK_HERE](https://docs.google.com/presentation/d/1WofJ0rSEUADOaanXWsI2QIlGKW2_SXLS/edit?usp=sharing&ouid=111738415124823754018&rtpof=true&sd=true)) |
+| **🎥 Demo Video** | [Attach Demo Video Link Here]([YOUR_DEMO_VIDEO_LINK_HERE](https://drive.google.com/file/d/1ZMvi5I2sMMNP9BOQX-ELk5uKo_B-vnyr/view?usp=sharing)) |
+| **🌐 Live Deployment (Vercel)** | [Attach Live App URL Here]([YOUR_LIVE_APP_URL_HERE](https://drive.google.com/file/d/1ZMvi5I2sMMNP9BOQX-ELk5uKo_B-vnyr/view?usp=sharing)) |
 
 > **Note:** Replace `YOUR_PPT_LINK_HERE`, `YOUR_DEMO_VIDEO_LINK_HERE`, and `YOUR_LIVE_APP_URL_HERE` with your Google Slides / Canva / PDF / YouTube / Loom / Vercel URLs before final submission.
 
