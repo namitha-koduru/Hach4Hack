@@ -19,6 +19,7 @@
 | **📊 Presentation (PPT / Pitch Deck)** | [View Presentation](https://docs.google.com/presentation/d/1WofJ0rSEUADOaanXWsI2QIlGKW2_SXLS/edit?usp=sharing) |
 | **🎥 Demo Video** | [Watch Demo Video](https://drive.google.com/file/d/1ZMvi5I2sMMNP9BOQX-ELk5uKo_B-vnyr/view?usp=sharing) |
 | **🌐 Live Deployment (Vercel)** | [Visit Live Application](https://teamforge-wine.vercel.app/) |
+| **📜 Test Report** | [Test Report](https://github.com/namitha-koduru/Hach4Hack/blob/main/LOAD_TEST_REPORT.md) |
 
 ---
 
