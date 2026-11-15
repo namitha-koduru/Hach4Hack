@@ -24,10 +24,14 @@ export const handleIdempotency = async (req: Request, res: Response, next: NextF
   const userId = req.user?.userId || 'anonymous';
   const scopedKey = `${userId}:${key}`;
 
-  // Wait for any simultaneous in-flight request with the exact same key to finish persisting
-  const inflight = inFlightKeys.get(scopedKey);
-  if (inflight) {
-    await inflight.catch(() => {});
+  // Synchronous check & await for any simultaneous in-flight request with the exact same key
+  while (inFlightKeys.has(scopedKey)) {
+    const flight = inFlightKeys.get(scopedKey);
+    if (flight) {
+      await flight.catch(() => {});
+    } else {
+      break;
+    }
   }
 
   try {
@@ -71,25 +75,49 @@ export const handleIdempotency = async (req: Request, res: Response, next: NextF
     res.json = function (body: unknown): Response {
       if (res.statusCode >= 200 && res.statusCode < 500 && !persistencePromise) {
         const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000);
-        persistencePromise = prisma.idempotencyRecord
-          .create({
-            data: {
-              key: scopedKey,
-              userId,
-              endpoint,
-              requestHash,
-              statusCode: res.statusCode,
-              responseBody: (body as object) || {},
-              expiresAt,
-            },
-          })
-          .then(() => undefined)
-          .catch((err) => {
-            console.error('Failed to save idempotency record:', err);
-          })
-          .finally(() => {
-            cleanupFlight();
-          });
+        persistencePromise = (async () => {
+          try {
+            const found = await prisma.idempotencyRecord.findUnique({
+              where: { key: scopedKey },
+            });
+            if (found) {
+              await prisma.idempotencyRecord.update({
+                where: { key: scopedKey },
+                data: {
+                  statusCode: res.statusCode,
+                  responseBody: (body as object) || {},
+                },
+              });
+            } else {
+              await prisma.idempotencyRecord.create({
+                data: {
+                  key: scopedKey,
+                  userId,
+                  endpoint,
+                  requestHash,
+                  statusCode: res.statusCode,
+                  responseBody: (body as object) || {},
+                  expiresAt,
+                },
+              });
+            }
+          } catch (err) {
+            // Fallback update on concurrent race
+            try {
+              await prisma.idempotencyRecord.update({
+                where: { key: scopedKey },
+                data: {
+                  statusCode: res.statusCode,
+                  responseBody: (body as object) || {},
+                },
+              });
+            } catch (innerErr) {
+              console.error('Failed to save idempotency record:', innerErr);
+            }
+          }
+        })().finally(() => {
+          cleanupFlight();
+        });
 
         // Wait briefly for DB persist before sending response so immediate retries see the cached record
         void persistencePromise.then(() => originalJson(body));
