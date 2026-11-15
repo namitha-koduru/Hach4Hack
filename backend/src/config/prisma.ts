@@ -8,13 +8,16 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
-let activeClient: PrismaClient = createMockPrisma();
+let activeClient: PrismaClient | null = null;
 
-async function probeAndConnectRealDb(): Promise<void> {
+async function probeAndConnectRealDb(): Promise<PrismaClient> {
+  if (activeClient) return activeClient;
+
   const dbUrl = config.env === 'test' ? config.testDatabaseUrl : config.databaseUrl;
   if (!dbUrl) {
     console.warn('[AI Studio] DATABASE_URL not configured — using pre-seeded in-memory database');
-    return;
+    activeClient = createMockPrisma();
+    return activeClient;
   }
 
   // Fast TCP reachability probe before handing traffic to PrismaClient
@@ -50,7 +53,8 @@ async function probeAndConnectRealDb(): Promise<void> {
 
     if (!reachable) {
       console.warn(`[AI Studio] Database at ${host}:${port} unreachable — using pre-seeded in-memory database`);
-      return;
+      activeClient = createMockPrisma();
+      return activeClient;
     }
 
     const realPrisma = new PrismaClient({
@@ -68,19 +72,46 @@ async function probeAndConnectRealDb(): Promise<void> {
     await realPrisma.$connect();
     activeClient = realPrisma;
     console.log('[AI Studio] Connected to PostgreSQL database');
+    return activeClient;
   } catch {
     console.warn('[AI Studio] Database connection failed — using pre-seeded in-memory database');
+    activeClient = createMockPrisma();
+    return activeClient;
   }
 }
 
-void probeAndConnectRealDb();
+const readyPromise: Promise<PrismaClient> = probeAndConnectRealDb();
+
+function wrapDelegate(modelName: string | symbol) {
+  return new Proxy(
+    {},
+    {
+      get(_target, methodName) {
+        if (methodName === 'then') return undefined;
+        return async (...args: unknown[]) => {
+          const client = await readyPromise;
+          const delegate = (client as unknown as Record<string | symbol, Record<string | symbol, Function>>)[modelName];
+          const fn = delegate[methodName];
+          return fn.apply(delegate, args);
+        };
+      },
+    }
+  );
+}
 
 export const prisma: PrismaClient =
   global.prisma ||
   (new Proxy({} as PrismaClient, {
     get(_target, prop) {
-      const value = (activeClient as any)[prop];
-      return typeof value === 'function' ? value.bind(activeClient) : value;
+      if (prop === 'then') return undefined;
+      if (typeof prop === 'string' && prop.startsWith('$')) {
+        return async (...args: unknown[]) => {
+          const client = await readyPromise;
+          const fn = (client as unknown as Record<string, Function>)[prop];
+          return fn.apply(client, args);
+        };
+      }
+      return wrapDelegate(prop);
     },
   }) as PrismaClient);
 
